@@ -455,7 +455,7 @@ def CreateLayoutTab_Cours():
                                     children=[
                                         html.Div(className='card-header',
                                         children=[
-                                            html.Div('Client list')
+                                            html.Div('Student list')
                                         ]),
                                         html.Div(className='card-body',
                                         children=[
@@ -476,10 +476,47 @@ def CreateLayoutTab_Cours():
 
                             ],width=2),
 
+                            
+
+
                             dbc.Col([
 
+                                dcc.Tabs(id="TabsCours",
+                                className='nav-item',
+                                parent_className='nav nav-tabs',
+                                value="Tab-CoursList",
+                                children=[
+                                    CreateTabCoursList(),
+                                    CreateTabCoursCreation(),
+                                ]),
+
+                            ],width=8),
+                        ])
+                    ])
+                ])
+
+
+def CreateTabCoursList():
+    return dcc.Tab(
+
+                id="Tab-CoursList",
+
+                label="List",
+
+                value="Tab-CoursList",
+
+                className=" nav-link  active tab-pane show",
+
+                selected_className='tab-pane fade active show',
+                style={"height":"100%"},
+
+                children=[
+                        html.Div(
+                            className='card border-primary mb-3',
+                            children=[
+
                                 html.Div(
-                                    id='StudentInfo',
+                                    # id='StudentInfo',
                                     className='card border-primary mb-3',
                                     children=[
                                         html.Div(className='card-header',
@@ -488,72 +525,87 @@ def CreateLayoutTab_Cours():
                                         ]),
                                         html.Div(className='card-body',
                                         children=[
-                                            dcc.Input(id='StudentInfoId',className="form-control",type="text",value="",size="30",placeholder="StudentInfoId"),
-                                            dcc.Input(id='StudentInfoNom',className="form-control",type="text",value="",size="30",placeholder="StudentInfoNom"),
-                                            dcc.Input(id='StudentInfoPrenoms',className="form-control",type="text",value="",size="30",placeholder="StudentInfoPrenoms"),
+                                            # dcc.Input(id='StudentInfoId',className="form-control",type="text",value="",size="30",placeholder="StudentInfoId"),
+                                            # dcc.Input(id='StudentInfoNom',className="form-control",type="text",value="",size="30",placeholder="StudentInfoNom"),
+                                            # dcc.Input(id='StudentInfoPrenoms',className="form-control",type="text",value="",size="30",placeholder="StudentInfoPrenoms"),
+                                            html.Div(id='StudentInfo'),
 
-                                            # html.Button("Create",id="CreateClientButton",n_clicks=0,className='btn btn-lg btn-info',style={"min-height":"20px","max-width":"300px"}),
-                                            # html.Button("Modify",id="ModifClientButton",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","max-width":"300px"}),
-                                            # html.Button("Delete",id="DeleteClientButton",n_clicks=0,className='btn btn-lg btn-danger',style={"min-height":"20px","max-width":"300px"}),
-                                            # html.Button("Submit To Urssaf",id="SubmitTOUrssafClientButton",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","max-width":"300px"}),
-                                            html.Div(style={"height":"5px"}),
-                                            html.Button("Modify",id="ModifStudentButton",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","max-width":"300px"}),
-                                            html.Button("Delete",id="DeleteStudentButton",n_clicks=0,className='btn btn-lg btn-danger',style={"min-height":"20px","max-width":"300px"}),
+                                            # html.Div(style={"height":"5px"}),
+                                            # html.Button("Modify",id="ModifStudentButton",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","max-width":"300px"}),
+                                            # html.Button("Delete",id="DeleteStudentButton",n_clicks=0,className='btn btn-lg btn-danger',style={"min-height":"20px","max-width":"300px"}),
 
                                             html.Button("Get Cours",id="GetCoursButton",n_clicks=0,className='btn btn-lg btn-info',style={"min-height":"20px","max-width":"300px"}),
 
                                         ])
-                                    ])
+                                    ]),
                                 
-                            ],width=2),
-                            dbc.Col([
-                                html.Div(
-                                    id='CoursId',
-                                    className='card border-primary mb-3',
-                                    children=[
+                                    # dcc.RadioItems(id="CurrentCoursId",
+                                    # style={"width":"50%"},
+                                    # className="form-check",
+                                    # inputClassName='form-check-input',
+                                    # labelClassName='form-check-label',
+                                    # options=[{"label":"New","value":-1}],
+                                    # value=-1
+                                    # )
 
-                                            dcc.RadioItems(id="CurrentCoursId",
-                                            style={"width":"50%"},
-                                            className="form-check",
-                                            inputClassName='form-check-input',
-                                            labelClassName='form-check-label',
-                                            options=[{"label":"New","value":-1}],
-                                            value=-1
-                                            )
-                                    ])
-                            ],width=2),
-                            dbc.Col([
-                                html.Div(
-                                    id='CoursInfo',
-                                    className='card border-primary mb-3',
-                                    children=[
+                                    html.Div(style={"height":"50px"}),
+                                    html.Div(id='ListCours'),
 
-                                            # dcc.Input(id='CoursDate',className="form-control",type="date",value="",size="30",placeholder="ClientAdresseComplement"),
-                                            dcc.DatePickerSingle(
-                                                id='CoursDate',
-                                                min_date_allowed=date(1900, 1, 1),
-                                                max_date_allowed=date(2100, 1, 1),
-                                                initial_visible_month=date(2022, 1, 1),
-                                                date= today# date(2017, 8, 25)
-                                            ),
-                                            dcc.Input(id='CoursStudentNom',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseLieuDit"),
-                                            dcc.Input(id='CoursNHeureReelle',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseVille"),
-                                            dcc.Input(id='CoursNHeureFacturee',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseCodeVille"),
-                                            dcc.Input(id='CoursSurPlace',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseCodePostal"),
-                                            dcc.Input(id='CoursNHeurePreparation',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseCodePays"),
-                                            dcc.Input(id='CoursNiveau',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseCodePays"),
+                            ])
 
-                                            html.Button("Create",id="CreateCoursButton",n_clicks=0,className='btn btn-lg btn-info',style={"min-height":"20px","max-width":"300px"}),
-                                            html.Button("Modify",id="ModifCoursButton",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","max-width":"300px"}),
-                                            html.Button("Delete",id="DeleteCoursButton",n_clicks=0,className='btn btn-lg btn-danger',style={"min-height":"20px","max-width":"300px"}),
-                                            html.Div(style={"height":"5px"}),
-                                    
-                                    ])
-                            ],width=6),
-
-                        ])
-                    ])
                 ])
+
+def CreateTabCoursCreation():
+    return dcc.Tab(
+
+                    id="Tab-CoursCreation",
+
+                    label="Create",
+
+                    className=" nav-link  active tab-pane show",
+
+                    selected_className='tab-pane fade active show',
+
+                    children=[
+
+                        html.Div(
+                            id='CoursInfo',
+                            className='card border-primary mb-3',
+                            children=[
+
+                                    dcc.Input(id='CoursId',className="form-control",type="text",value="-1",size="30",placeholder="Id"),
+                                    dcc.DatePickerSingle(
+                                        id='CoursDate',
+                                        min_date_allowed=date(1900, 1, 1),
+                                        max_date_allowed=date(2100, 1, 1),
+                                        initial_visible_month=date(2022, 1, 1),
+                                        date= today# date(2017, 8, 25)
+                                    ),
+                                    dcc.Input(id='CoursStudentId',disabled=True,className="form-control",type="text",value="",size="30",placeholder="StudentId"),
+                                    dcc.Input(id='CoursNHourReal',className="form-control",type="text",value="",size="30",placeholder="NHourReal"),
+                                    dcc.Input(id='CoursNHourFacturee',className="form-control",type="text",value="",size="30",placeholder="NHourFacturee"),
+                                    # dcc.Input(id='CoursSurPlace',className="form-control",type="text",value="",size="30",placeholder="SurPlace"),
+                                    html.Label('Sur place :'),
+                                    dcc.Dropdown(id='CoursSurPlace',className="form-control",value="Yes",
+                                        options=['Yes','No']),
+
+                                    dcc.Input(id='CoursNHourPreparation',className="form-control",type="text",value="",size="30",placeholder="NHourPreparation"),
+                                    # dcc.Input(id='CoursNiveau',className="form-control",type="text",value="",size="30",placeholder="Niveau"),
+                                    dcc.Dropdown(id='CoursNiveau',className="form-control",value="Terminal",
+                                        options=["Pass","L3",'L2','L1',"Terminal","Premiere","Seconde","3e","4e","5e","6e"]),
+
+                                    dcc.Input(id='CoursHourPriceHT',className="form-control",type="text",value="",size="30",placeholder="HourPriceHT"),
+
+                                    html.Div(style={"height":"50px"}),
+                                    html.Button("Create",id="CreateCoursButton",n_clicks=0,className='btn btn-lg btn-info',style={"min-height":"20px","max-width":"300px"}),
+                                    html.Button("Modify",id="ModifCoursButton",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","max-width":"300px"}),
+                                    html.Button("Delete",id="DeleteCoursButton",n_clicks=0,className='btn btn-lg btn-danger',style={"min-height":"20px","max-width":"300px"}),
+                                    html.Div(style={"height":"5px"}),
+                            
+                            ])
+                    ]
+    )  
+
 
 
 def CreateLayoutTab_Config(Config):
@@ -590,7 +642,7 @@ def CreateLayoutTab_Config(Config):
                             dcc.Input(id='NextNumFacture',className="form-control",type="text",value=Config['StartNextNumFacture'],size="30",placeholder="NumFacture to be created"),
                             html.Div(style={"height":"15px"}),
 
-                            html.Label("TVA "),
+                            html.Label("TVA in %"),
                             dcc.Input(id='TVAvalue',className="form-control",type="text",value=0,size="30",placeholder="TVA to be applied"),
                             html.Div(style={"height":"15px"}),
 

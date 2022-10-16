@@ -866,19 +866,20 @@ def GetStudents(trigger,Email=None):
 
         output=[
             
-            Output('StudentInfoId',"value"),
-            Output('StudentInfoNom',"value"),
-            Output('StudentInfoPrenoms',"value"),
+            # Output('StudentInfoId',"value"),
+            # Output('StudentInfoNom',"value"),
+            # Output('StudentInfoPrenoms',"value"),
+            Output('StudentInfo',"children"),
 
-            [
-                Output('API_response_fail','is_open'),
-                Output('API_response_fail','children'), 
-                Output('API_response_warning','is_open'),
-                Output('API_response_warning','children'), 
-                Output('API_response_success','is_open'),
-                Output('API_response_success','children'), 
-            ],
-            Output('CurrentCoursId','options'),
+            # [
+            #     Output('API_response_fail','is_open'),
+            #     Output('API_response_fail','children'), 
+            #     Output('API_response_warning','is_open'),
+            #     Output('API_response_warning','children'), 
+            #     Output('API_response_success','is_open'),
+            #     Output('API_response_success','children'), 
+            # ],
+            # Output('CurrentCoursId','options'),
 
         ],
 
@@ -926,22 +927,25 @@ def GetStudent(trigger):
 
     print()
     print("-- GetStudentInfo")
-    try:
-
-        res = ReadAPIQuery(query_sql=query_sql)
-
-        for i in range(0,NumColStudentsInfo):
-            StudentInfo.append(res.iloc[0,i])
-            print(res.iloc[0,i])
-
-    except mysql.connector.errors.InterfaceError :
-
-        return StudentInfo,*ReturnFailNotif('Can\'t access Local Db')
 
 
-    print(len(StudentInfo))
+
+    res = ReadAPIQuery(query_sql=query_sql)
+    res= res.iloc[0].to_dict()#"records")
+
+    # for i in range(0,NumColStudentsInfo):
+    #     StudentInfo.append(res.iloc[0,i])
+    #     print(res.iloc[0,i])
+
+    for k in res :
+        StudentInfo.append(html.Div(str(k)+' : '+str(res[k])))
+
+    StudentInfos = html.Div(StudentInfo)
+
+
+    print(len(StudentInfos))
  
-    return *StudentInfo,*ReturnNoNotif(),[]
+    return StudentInfos#,*ReturnNoNotif()
 
 
 #************************************************************************************
@@ -958,7 +962,7 @@ def GetCoursFromStudentId(StudentId):
                 SELECT *
 
                 FROM cours
-                WHERE StudentId=XXIdXX   ;
+                WHERE StudentId=XXIdXX   order by Date Desc;
 
                 '''
 
@@ -983,19 +987,22 @@ def GetCoursFromStudentId(StudentId):
             # Output('BoxIdFromCustomAPISearchData','data')  , 
             # Output('CurrentFileBoxIdLastPairedUserEmail','data')  ,
             
-            Output('CurrentCoursId','options'),
-            [
-                Output('API_response_fail','is_open'),
-                Output('API_response_fail','children'), 
-                Output('API_response_warning','is_open'),
-                Output('API_response_warning','children'), 
-                Output('API_response_success','is_open'),
-                Output('API_response_success','children'), 
-            ]
+            # Output('CurrentCoursId','options'),
+            Output('ListCours','children'),
+            Output('CoursStudentId','value'),
+            # [
+            #     Output('API_response_fail','is_open'),
+            #     Output('API_response_fail','children'), 
+            #     Output('API_response_warning','is_open'),
+            #     Output('API_response_warning','children'), 
+            #     Output('API_response_success','is_open'),
+            #     Output('API_response_success','children'), 
+            # ]
             ],
 
         inputs=[   
-            Input('GetCoursButton', 'n_clicks')   
+            Input('GetCoursButton', 'n_clicks')  , 
+            Input('CurrentStudentId', 'value')   
         ],
 
         state=[  
@@ -1013,64 +1020,81 @@ def GetCours(trigger,StudentId,Email=None):
 
 
 
-    try:
-        res = GetCoursFromStudentId(StudentId)
-    except mysql.connector.errors.InterfaceError :
+    res = GetCoursFromStudentId(StudentId)
 
-        return Cours,*ReturnFailNotif('Can\'t access Local Db')
+    if not res.empty:
+
+        res = res.to_dict("records")
+
+        divs=[]
+        for i,r in enumerate(res):
+            ch=[]
+            for k in r:
+                ch.append(html.P(className="mb-1",children=str(k)+" : "+str(r[k])))
+
+            classname = "list-group-item list-group-item-action flex-column align-items-start"
+            if i%2==0:
+                classname+=" active"
+            divs.append(html.A(
+                # style={"width":"100%"},
+                className=classname,#"list-group-item list-group-item-action flex-column align-items-start",
+                children = ch,
+                ))
+            
+        container = html.Div(divs,
+        className="list-group",
+        style={"height":"100%","overflow-y":"auto"},
+        )
+
+    else:
+
+        container = html.Div("Pas de cours !",className="text-warning")
+
+
+
+    return  container,StudentId#, *ReturnSuccessNotif('Done !')
+
+
+
+
+
+# @app.callback(
+
+#         output=[
+#             # Output('BoxIdFromCustomAPISearchData','data')  , 
+#             # Output('CurrentFileBoxIdLastPairedUserEmail','data')  ,
+            
+#             Output('CoursNiveau',"value"),
+#             Output('CoursNHeureFacturee',"value"),
+#             Output('CoursNHeureReelle',"value"),
+#             Output('CoursSurPlace',"value"),
+#             Output('CoursNHeurePreparation',"value"),
+#             Output('CoursDate',"date"),
+            
+#             [
+#                 Output('API_response_fail','is_open'),
+#                 Output('API_response_fail','children'), 
+#                 Output('API_response_warning','is_open'),
+#                 Output('API_response_warning','children'), 
+#                 Output('API_response_success','is_open'),
+#                 Output('API_response_success','children'), 
+#             ]
+#             ],
+
+#         inputs=[   
+#             Input('CurrentCoursId', 'value')   
+#         ],
+
+#         state=[  
+#             # State('CustomEmail_input','value')
+#         ],
+
+#         prevent_initial_call=True,
 
  
-    if res.empty:
-        return Cours, *ReturnWarningNotif('No Cours found !')
 
-    
-    for i,r in res.iterrows():
-        Cours.append({"label":'<div style="color:red">test</div> StudentId '+str(r['StudentId']),"value":str(r['Id'])})
-
-
-    return  Cours, *ReturnSuccessNotif('Done !')
-
-
-
-
-
-@app.callback(
-
-        output=[
-            # Output('BoxIdFromCustomAPISearchData','data')  , 
-            # Output('CurrentFileBoxIdLastPairedUserEmail','data')  ,
-            
-            Output('CoursNiveau',"value"),
-            Output('CoursNHeureFacturee',"value"),
-            Output('CoursNHeureReelle',"value"),
-            Output('CoursSurPlace',"value"),
-            Output('CoursNHeurePreparation',"value"),
-            Output('CoursDate',"date"),
-            
-            [
-                Output('API_response_fail','is_open'),
-                Output('API_response_fail','children'), 
-                Output('API_response_warning','is_open'),
-                Output('API_response_warning','children'), 
-                Output('API_response_success','is_open'),
-                Output('API_response_success','children'), 
-            ]
-            ],
-
-        inputs=[   
-            Input('CurrentCoursId', 'value')   
-        ],
-
-        state=[  
-            # State('CustomEmail_input','value')
-        ],
-
-        prevent_initial_call=True,
-
- 
-
-)
-def GetCoursInfo(trigger,Email=None):
+# )
+# def GetCoursInfo(trigger,Email=None):
     NumCol=6
     # if not Email or Email =='None':
 
@@ -1137,8 +1161,218 @@ def GetCoursInfo(trigger,Email=None):
 
     return  *CoursInfo, *ReturnSuccessNotif('Done !')
 
-# add cours
-# delete cours
+
+
+
+def ModifyCoursValuesFromInputs(Values,values):
+    for v in values:
+        if v is None or v=="":
+            Values.append(None)
+        elif v=="Yes" or v=="No":
+            Values.append(v)
+        else:
+            Values.append('"'+str(v)+'"')
+
+    Values.append(None) #FactureId
+    Values[9] = Values[8] 
+    Values[8] = None      #inverse facture id and HourPrice
+
+    if Values[4]=="Yes":
+        Values[4] = "1"
+    elif Values[4]=="No":
+        Values[4] = "0"
+    else:
+        raise ValueError('Bad Value for CoursSurPlace  : '+str(Values[4]))
+
+    return Values
+
+@app.callback(
+
+        output=[
+            # Output('BoxIdFromCustomAPISearchData','data')  , 
+            # Output('CurrentFileBoxIdLastPairedUserEmail','data')  ,
+            
+            Output('API_response_fail','is_open'),
+            Output('API_response_fail','children'), 
+            Output('API_response_warning','is_open'),
+            Output('API_response_warning','children'), 
+            Output('API_response_success','is_open'),
+            Output('API_response_success','children'), 
+            ],
+
+        inputs=[   
+            Input('CreateCoursButton', 'n_clicks')   
+        ],
+
+        state=[  
+            State('CoursNiveau','value'),
+            State('CoursNHourFacturee','value'),
+            State('CoursNHourReal','value'),
+            State('CoursSurPlace','value'),
+            State('CoursNHourPreparation','value'),
+            State('CoursStudentId','value'),  #! same order as Db
+            State('CoursDate','date'),  
+            State('CoursHourPriceHT','value'),
+        ],
+
+        prevent_initial_call=True,
+
+ 
+
+)
+def AddCours(trigger,*values):
+    Values = [None]  #Id
+
+    query_sql = '''
+
+            INSERT INTO cours
+
+            values(XXXXValuesComaXXX);
+
+            '''
+    try : 
+
+        Values =  ModifyCoursValuesFromInputs(Values,values)
+
+    except ValueError as e:
+        return ReturnFailNotif(str(e))
+
+
+    for i,v in enumerate(Values) :
+        if v is None:
+            Values[i]='DEFAULT'
+
+
+    SQLValues = ','.join([ v for v in Values])
+
+
+
+
+
+    query_sql = query_sql.replace('XXXXValuesComaXXX', SQLValues) #'""')
+
+    print()
+    print("-- AddCours ")
+    print(query_sql)
+
+
+    try:
+
+        res = InsertAPIQuery(query_sql=query_sql)
+    except mysql.connector.errors.InterfaceError :
+
+        return ReturnFailNotif('Can\'t access Local Db')
+
+    except mysql.connector.errors.DatabaseError as e:
+        print(e)
+        return ReturnFailNotif('ERROR  : '+str(e))
+
+
+    return ReturnSuccessNotif('Done!')
+
+
+
+@app.callback(
+
+        output=[
+            # Output('BoxIdFromCustomAPISearchData','data')  , 
+            # Output('CurrentFileBoxIdLastPairedUserEmail','data')  ,
+            
+            Output('API_response_fail','is_open'),
+            Output('API_response_fail','children'), 
+            Output('API_response_warning','is_open'),
+            Output('API_response_warning','children'), 
+            Output('API_response_success','is_open'),
+            Output('API_response_success','children'), 
+
+            ],
+
+        inputs=[   
+            Input('ModifCoursButton', 'n_clicks')   
+        ],
+
+        state=[  
+            State('CoursId','value'),
+            State('CoursNiveau','value'),
+            State('CoursNHourFacturee','value'),
+            State('CoursNHourReal','value'),
+            State('CoursSurPlace','value'),
+            State('CoursNHourPreparation','value'),
+            State('CoursStudentId','value'),  #! same order as Db
+            State('CoursDate','date'),  
+            State('CoursHourPriceHT','value'),
+        ],
+
+        prevent_initial_call=True,
+
+ 
+
+)
+def ModifCours(trigger,*values):
+    Values = []
+
+    query_sql = '''
+
+            UPDATE cours
+
+            set XXXXCol=ValuesComaXXX
+            
+            WHERE Id= XXidXX;
+            '''
+
+    Cols=[ 
+            'Id',
+            'Niveau',
+            'NHourFacturee',
+            'NHourReal',
+            'SurPlace',
+            'NHourPreparation',
+            'StudentId',
+            'Date',
+            'FactureId',
+            'HourPriceHT',
+            ]
+
+    Values = ModifyCoursValuesFromInputs(Values,values)
+
+    if Values is None or Values[0] is None or Values[0]=="" or (type(Values[0]) is int and Values[0]<0) :
+    
+        return ReturnWarningNotif('Bad Id to modify !')
+
+
+
+    SQLValues=[]
+
+
+    for i,v in enumerate(Values) :
+        if v is None:
+            Values[i]='DEFAULT'
+
+        SQLValues.append(Cols[i]+"="+Values[i])
+
+    SQLValues = ','.join(SQLValues)
+
+    query_sql = query_sql.replace('XXXXCol=ValuesComaXXX', SQLValues) #'""')
+    query_sql = query_sql.replace('XXidXX', str(Values[0])) #'""')
+
+    print()
+    print("-- ModifCours ")
+    print(query_sql)
+
+
+    try:
+
+        res = InsertAPIQuery(query_sql=query_sql)
+    except mysql.connector.errors.InterfaceError :
+
+        return ReturnFailNotif('Can\'t access Local Db')
+
+    except mysql.connector.errors.DatabaseError as e:
+        print(e)
+        return ReturnFailNotif('ERROR  : '+str(e))
+
+    return ReturnSuccessNotif('Done!')
+
 
 
 
