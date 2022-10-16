@@ -1,0 +1,12 @@
+dash==2.6.1
+plotly==5.9
+dash-extensions==0.0.71
+dash-bootstrap-components==1.2.1
+kaleido
+pprintpp
+joblib
+scipy==1.9.0
+matplotlib
+mysql-connector-python
+pandas
+numpy
