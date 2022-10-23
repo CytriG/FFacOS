@@ -189,7 +189,7 @@ app = DashProxy(prevent_initial_callbacks=True,
                     transforms=[MultiplexerTransform()],
 
                     # external_stylesheets=[dbc.themes.SLATE],
-                    external_stylesheets=[dbc.themes.LUMEN],
+                    external_stylesheets=[dbc.themes.LITERA],
 
                     # external_scripts=external_scripts
 
@@ -337,13 +337,15 @@ def GetClients(trigger,Email=None):
 @app.callback(
 
         output=[
-            
+            Output("ClientInfoContainer","children"),
+            Output("StudentInfoContainer","children"),
+
             Output('ClientInfoId',"value"),
             Output('ClientInfoNom',"value"),
             Output('ClientInfoPrenoms',"value"),
             Output('ClientInfoNomUsage',"value"),
             Output('ClientInfoCivilite',"value"),
-            Output('ClientInfoDateNaissance',"value"),
+            Output('ClientInfoDateNaissance',"date"),
             Output('ClientInfoPaysNaissance',"value"),
             Output('ClientInfoDepNaissance',"value"),
             Output('ClientInfoCodeVilleNaissance',"value"),
@@ -426,15 +428,75 @@ def GetClient(trigger):
             ClientInfo.append(res.iloc[0,i])
             print(res.iloc[0,i])
 
+        temp = res.to_dict('records')[0]
+
+        Students = GetStudentsFromClientId(temp['Id']).to_dict('records')
+        print('............')
+        print(Students)
+
+        ClientInfoChildren = WriteClientInfo(temp)
+        StudentInfoChildren = WriteStudentInfo(Students)
+
+
+
+
     except mysql.connector.errors.InterfaceError :
 
         return ClientInfo,*ReturnFailNotif('Can\'t access Local Db')
 
 
     print(len(ClientInfo))
+
+
+    return ClientInfoChildren,StudentInfoChildren,*ClientInfo,*ReturnNoNotif()
  
-    return *ClientInfo,*ReturnNoNotif()
- 
+
+
+def WriteClientInfo(ClientInfo):
+
+    ch=[]
+    for ik in ClientInfo.keys():
+        ch.append(html.Div(str(ik)+" : "+str(ClientInfo[ik])))
+
+    return ch
+
+
+def WriteStudentInfo(StudentsInfo):
+
+    contain = []
+    
+    for stud in StudentsInfo:
+        ch=[]
+        for ik in stud.keys():
+            ch.append(html.Div(str(ik)+" : "+str(stud[ik])))
+
+        contain.append(html.Div(ch))
+        contain.append(html.Div(style={"height":"20px"}))
+
+    return contain
+
+
+def GetStudentsFromClientId(ClientId):
+
+        query_sql = '''
+
+                SELECT *
+
+                FROM students WHERE ClientId=XXXIdxXX;
+
+                '''
+
+        query_sql = query_sql.replace('XXXIdxXX', str(ClientId))#','.join(['email','long_id']))
+
+        print()
+        print("-- GetStudentsFromClientId")
+
+        res = ReadAPIQuery(query_sql=query_sql)
+
+        return res
+
+
+
 
 @app.callback(
 
@@ -497,9 +559,9 @@ def GetClientsForClientInfo(trigger,Email=None):
             # State('ClientInfoId','value'),   #! same order as Db
             State('ClientInfoNom','value'),
             State('ClientInfoPrenoms','value'),
-            State('ClientInfoNomUsage','value'),
             State('ClientInfoCivilite','value'),
-            State('ClientInfoDateNaissance','value'),
+            State('ClientInfoNomUsage','value'),
+            State('ClientInfoDateNaissance','date'),
             State('ClientInfoPaysNaissance','value'),
             State('ClientInfoDepNaissance','value'),
             State('ClientInfoCodeVilleNaissance','value'),
@@ -562,9 +624,9 @@ def AddClient(trigger,*values):
 
         return ReturnFailNotif('Can\'t access Local Db')
 
-    except mysql.connector.errors.InterfaceError :
-
-        return ReturnFailNotif('Can\'t access Local Db')
+    except mysql.connector.errors.DatabaseError as e:
+        print(e)
+        return ReturnFailNotif('SQL ERROR :  '+str(e))
 
     return ReturnSuccessNotif('Done!')
 
@@ -596,7 +658,7 @@ def AddClient(trigger,*values):
             State('ClientInfoPrenoms','value'),
             State('ClientInfoNomUsage','value'),
             State('ClientInfoCivilite','value'),
-            State('ClientInfoDateNaissance','value'),
+            State('ClientInfoDateNaissance','date'),
             State('ClientInfoPaysNaissance','value'),
             State('ClientInfoDepNaissance','value'),
             State('ClientInfoCodeVilleNaissance','value'),
@@ -756,9 +818,76 @@ def DeleteClient(trigger,id):
     return ReturnSuccessNotif('Done!')
 
 
- 
 
- 
+
+
+
+@app.callback(
+
+        output=[
+            Output('API_response_fail','is_open'),
+            Output('API_response_fail','children'), 
+            Output('API_response_warning','is_open'),
+            Output('API_response_warning','children'), 
+            Output('API_response_success','is_open'),
+            Output('API_response_success','children'), 
+
+            ],
+        inputs=[   
+            Input('CreateStudentButton', 'n_clicks')   
+        ],
+
+        state=[  
+            # State('NewStudentInfoId','value'),   
+            State('NewStudentInfoNom','value'),   
+            State('NewStudentInfoPrenoms','value'),   
+            State('ClientInfoId','value'),   
+        ],
+
+        prevent_initial_call=True,
+
+)
+def AddStudentsToClient(trigger,*values):
+
+
+    Values = [None]  #Id
+
+    query_sql = '''
+
+            INSERT INTO students
+
+            values(XXXXValuesComaXXX);
+
+            '''
+
+    for v in values:
+        Values.append('"'+str(v)+'"')
+
+    for i,v in enumerate(Values) :
+        if v is None:
+            Values[i]='DEFAULT'
+
+
+    SQLValues = ','.join([ v for v in Values])
+
+    query_sql = query_sql.replace('XXXXValuesComaXXX', SQLValues) #'""')
+
+
+    print()
+    print("-- Create Student ")
+    print(query_sql)
+
+    try:
+
+        res = InsertAPIQuery(query_sql=query_sql)
+    except mysql.connector.errors.InterfaceError :
+
+        return ReturnFailNotif('Can\'t access Local Db')
+
+
+    return ReturnSuccessNotif('Done!')
+
+
 
  
 
@@ -768,6 +897,97 @@ def DeleteClient(trigger,id):
 
 
  #  Students
+
+
+
+
+
+
+@app.callback(
+
+        output=[
+            Output('API_response_fail','is_open'),
+            Output('API_response_fail','children'), 
+            Output('API_response_warning','is_open'),
+            Output('API_response_warning','children'), 
+            Output('API_response_success','is_open'),
+            Output('API_response_success','children'), 
+
+            ],
+        inputs=[   
+            Input('ModifyStudentButton', 'n_clicks')   
+        ],
+
+        state=[  
+            State('NewStudentInfoId','value'),   
+            State('NewStudentInfoNom','value'),   
+            State('NewStudentInfoPrenoms','value'),   
+            State('ClientInfoId','value'),   
+        ],
+
+        prevent_initial_call=True,
+
+)
+def ModifyStudentsToClient(trigger,StudentId,*Values):
+
+
+    query_sql = '''
+
+            UPDATE students
+
+            set XXXXCol=ValuesComaXXX
+            
+            WHERE Id=XXidXX;
+            '''
+
+    Cols=[ 
+            'Nom',
+            'Prenoms',
+            'ClientId',
+            ]
+
+
+
+    if Values is None or Values[0] is None or Values[0]=="" or (type(Values[0]) is int and Values[0]<0) :
+    
+        return ReturnWarningNotif('Bad Id to modify !')
+
+
+    SQLValues=[]
+
+
+    for i,v in enumerate(Values) :
+        if v is None:
+            Values[i]='DEFAULT'
+
+        SQLValues.append(str(Cols[i])+"=\""+str(Values[i])+"\"")
+
+    print(SQLValues)
+    SQLValues = ','.join(SQLValues)
+
+    query_sql = query_sql.replace('XXXXCol=ValuesComaXXX', SQLValues) #'""')
+    query_sql = query_sql.replace('XXidXX', str(StudentId)) #'""')
+
+    print()
+    print("-- ModifStudent ")
+    print(query_sql)
+
+    try:
+
+        res = InsertAPIQuery(query_sql=query_sql)
+    except mysql.connector.errors.InterfaceError :
+
+        return ReturnFailNotif('Can\'t access Local Db')
+
+
+    return ReturnSuccessNotif('Done!')
+
+
+
+
+
+
+
 
 
  
@@ -952,6 +1172,31 @@ def GetStudent(trigger):
 
 
 #  Cours
+
+
+def GetCoursFromCoursId(CoursId):
+    query_sql = '''
+
+                SELECT *
+
+                FROM cours
+                WHERE Id=XXIdXX   order by Date Desc;
+
+                '''
+
+    # query_sql = query_sql.replace('XXXcolsXXX', 'Id, Date, StudentId')#','.join(['email','long_id']))
+    query_sql = query_sql.replace('XXIdXX', str(CoursId))#','.join(['email','long_id']))
+
+    print()
+    print("-- GetCours ")
+    print(query_sql)
+
+
+    res = ReadAPIQuery(query_sql=query_sql)
+    print(res)
+
+    return res.iloc[0]
+
 
 
 
@@ -1375,6 +1620,65 @@ def ModifCours(trigger,*values):
 
 
 
+@app.callback(
+
+        output=[
+            
+            Output('CoursNiveau','value'),
+            Output('CoursNHourFacturee','value'),
+            Output('CoursNHourReal','value'),
+            Output('CoursSurPlace','value'),
+            Output('CoursNHourPreparation','value'),
+            Output('CoursStudentId','value'),  #! same order as Db
+            Output('CoursDate','date'),  
+            Output('CoursFactureId','value'),  
+            Output('CoursHourPriceHT','value'),
+            ],
+
+        inputs=[   
+            Input('CoursId', 'value')   
+        ],
+
+        state=[  
+        ],
+
+        prevent_initial_call=True,
+
+ 
+
+)
+def UpdateCoursInfoFromCoursSelected(CoursId):
+
+    res = GetCoursFromCoursId(CoursId).to_list()    
+    print(res)
+
+    res = res[1:] # remove Id
+    return res
+
+
+@app.callback(
+
+        output=[
+            Output('CoursId','options')  ,
+            ],
+
+        inputs=[   
+            Input('CurrentStudentId', 'value')   
+        ],
+
+        prevent_initial_call=True,
+
+)    
+def SelectCoursToModify(StudentId):
+
+
+    res = GetCoursFromStudentId(StudentId)
+
+    options = res['Id'].to_list()
+
+    return options
+
+
 
 #************************************************************************************
 
@@ -1516,6 +1820,8 @@ def AddPrestationToFactureCreationPage(n_clicks,children,ClientId):
     return children,Prestas
 
 
+
+
 @app.callback(
     Output({'type': 'facturecreationaddpresta-dynamic-output', 'index': MATCH}, 'children'),
     Input({'type': 'facturecreationaddpresta-dynamic-dropdown', 'index': MATCH}, 'value'),
@@ -1577,6 +1883,8 @@ def ComputeTotalFacture(trigger,value, id,tva,selectedprestas):
     TotalHT=0
 
     for v in value:
+        if v is None:
+            continue
         presta = selectedprestas[str(v)]
         print(presta)
 
@@ -1714,7 +2022,7 @@ def GetFactureList(ClientId):
 
         )
 
-        if(r['StatusDemandePaiementUrssaf'] is not None) : 
+        if(r['StatusDemandePaiementUrssaf'] is None) : 
             StrOption = "Id :"+str(r['Id'])+" , Num : "+str(r['NumFacture'])
             DropDownOptions.append(StrOption)
     

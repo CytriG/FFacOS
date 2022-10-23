@@ -12,7 +12,9 @@ import os
 
 
 today = date.today()
- 
+optionsHours= list(range(0,24,1))
+optionsMinutes= list(range(0,60,15))
+
 
 def CreateLayoutTab_Factures(Config):
  
@@ -287,6 +289,7 @@ def CreateLayoutTab_Clients():
                                 dcc.Tabs(id="TabsClient",
                                 className='nav-item',
                                 parent_className='nav nav-tabs',
+                                value="TabClientInfo",
                                 children=[
                                     CreateTabClientInfo(),
                                     CreateTabClientModif(),
@@ -305,17 +308,19 @@ def CreateTabClientInfo():
 
     return dcc.Tab(
 
-
                 value='TabClientInfo',
 
-                label="Info",
+                label="Client Info",
 
                 className=" nav-link  active tab-pane show",
 
                 selected_className='tab-pane fade active show',
 
                 children=[
-
+                    
+                    html.Div(id='ClientInfoContainer'),
+                    html.Div(style={"height":"100px"}),
+                    html.Div(id='StudentInfoContainer'),
        
                 ]
             )
@@ -327,7 +332,7 @@ def CreateTabClientModif():
 
                 value='TabClientModif',
 
-                label="Modif Info",
+                label="Create / Modif Client",
 
                 className=" nav-link  active tab-pane show",
 
@@ -345,33 +350,80 @@ def CreateTabClientModif():
                             ]),
                             html.Div(className='card-body',
                             children=[
+                                html.Label('Id'),
                                 dcc.Input(id='ClientInfoId',className="form-control",type="text",value="",size="30",placeholder="ClientInfoId"),
+                                html.Label('Nom'),
                                 dcc.Input(id='ClientInfoNom',className="form-control",type="text",value="",size="30",placeholder="ClientInfoNom"),
+                                html.Label('Prenoms'),
                                 dcc.Input(id='ClientInfoPrenoms',className="form-control",type="text",value="",size="30",placeholder="ClientInfoPrenoms"),
+                                html.Label('Nom Usage'),
                                 dcc.Input(id='ClientInfoNomUsage',className="form-control",type="text",value="",size="30",placeholder="ClientInfoNomUsage"),
-                                dcc.Input(id='ClientInfoCivilite',className="form-control",type="text",value="",size="30",placeholder="ClientInfoCivilite"),
-                                dcc.Input(id='ClientInfoDateNaissance',className="form-control",type="text",value="",size="30",placeholder="ClientInfoDateNaissance"),
-                                dcc.Input(id='ClientInfoPaysNaissance',className="form-control",type="text",value="",size="30",placeholder="ClientInfoPaysNaissance"),
-                                dcc.Input(id='ClientInfoDepNaissance',className="form-control",type="text",value="",size="30",placeholder="ClientInfoDepNaissance"),
-                                dcc.Input(id='ClientInfoCodeVilleNaissance',className="form-control",type="text",value="",size="30",placeholder="ClientInfoCodeVilleNaissance"),
-                                dcc.Input(id='ClientInfoVilleNaissance',className="form-control",type="text",value="",size="30",placeholder="ClientInfoVilleNaissance"),
-                                dcc.Input(id='ClientInfoTel',className="form-control",type="text",value="",size="30",placeholder="ClientInfoTel"),
-                                dcc.Input(id='ClientInfoEmail',className="form-control",type="text",value="",size="30",placeholder="ClientInfoEmail"),
+                                html.Label('Civilite'),
+                                # dcc.Input(id='ClientInfoCivilite',className="form-control",type="text",value="",size="30",placeholder="ClientInfoCivilite"),
+                                dcc.Dropdown(id='ClientInfoCivilite',className="form-control",
+                                options=[
+                                    {"label":"M : 1","value":1},
+                                    {"label":"Mme : 2","value":2},
+                                ],
+                                value=1,
+                                ),
+                                html.Label('Date Naissance'),
+                                # dcc.Input(id='ClientInfoDateNaissance',className="form-control",type="text",value="",size="30",placeholder="ClientInfoDateNaissance"),
+                                dcc.DatePickerSingle(
+                                    id='ClientInfoDateNaissance',
+                                    min_date_allowed=date(1900, 1, 1),
+                                    max_date_allowed=date(2100, 1, 1),
+                                    initial_visible_month=date(2022, 1, 1),
+                                    date= today,# date(2017, 8, 25),
+                                    display_format="DD/MM/YYYY",
+                                    style={"width":"100%"}
+                                ),
 
+                                html.Label('Pays Naissance'),
+                                dcc.Input(id='ClientInfoPaysNaissance',className="form-control",type="text",value="",size="30",placeholder="ClientInfoPaysNaissance"),
+                                html.Label('Departement Naissance'),
+                                dcc.Input(id='ClientInfoDepNaissance',className="form-control",type="text",value="",size="30",placeholder="ClientInfoDepNaissance"),
+                                html.Label('Code Ville Naissance'),
+                                dcc.Input(id='ClientInfoCodeVilleNaissance',className="form-control",type="text",value="",size="30",placeholder="ClientInfoCodeVilleNaissance"),
+                                html.Label('Ville Naissance'),
+                                dcc.Input(id='ClientInfoVilleNaissance',className="form-control",type="text",value="",size="30",placeholder="ClientInfoVilleNaissance"),
+                                html.Label('Tel'),
+                                dcc.Input(id='ClientInfoTel',className="form-control",type="text",value="",size="30",placeholder="ClientInfoTel"),
+                                html.Label('Email'),
+                                dcc.Input(id='ClientInfoEmail',className="form-control",type="text",value="",size="30",placeholder="ClientInfoEmail"),
+                                html.Div(style={"height":"50px"}),
+
+
+                                html.Label('Adresse Num voie'),
                                 dcc.Input(id='ClientAdresseNumVoie',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseNumVoie"),
+                                html.Label('Adresse Lettre voie'),
                                 dcc.Input(id='ClientAdresseLettreVoie',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseLettreVoie"),
+                                html.Label('Adresse Code voie'),
                                 dcc.Input(id='ClientAdresseCodeVoie',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseCodeVoie"),
+                                html.Label('Adresse voie'),
                                 dcc.Input(id='ClientAdresseVoie',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseVoie"),
+                                html.Label('Adresse complement'),
                                 dcc.Input(id='ClientAdresseComplement',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseComplement"),
+                                html.Label('Adresse Lieu dit'),
                                 dcc.Input(id='ClientAdresseLieuDit',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseLieuDit"),
+                                html.Label('Ville'),
                                 dcc.Input(id='ClientAdresseVille',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseVille"),
+                                html.Label('Code ville'),
                                 dcc.Input(id='ClientAdresseCodeVille',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseCodeVille"),
+                                html.Label('Code postal'),
                                 dcc.Input(id='ClientAdresseCodePostal',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseCodePostal"),
+                                html.Label('Code Pays'),
                                 dcc.Input(id='ClientAdresseCodePays',className="form-control",type="text",value="",size="30",placeholder="ClientAdresseCodePays"),
 
+
+                                html.Div(style={"height":"50px"}),
+                                html.Label('BIC'),
                                 dcc.Input(id='ClientBIC',className="form-control",type="text",value="",size="30",placeholder="ClientBIC"),
+                                html.Label('IBAN'),
                                 dcc.Input(id='ClientIBAN',className="form-control",type="text",value="",size="30",placeholder="ClientIBAN"),
+                                html.Label('Titulaire'),
                                 dcc.Input(id='ClientBanqueTitulaire',className="form-control",type="text",value="",size="30",placeholder="ClientBanqueTitulaire"),
+                                html.Div(style={"height":"25px"}),
 
                                 html.Button("Create",id="CreateClientButton",n_clicks=0,className='btn btn-lg btn-info',style={"min-height":"20px","max-width":"300px"}),
                                 html.Button("Modify",id="ModifClientButton",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","max-width":"300px"}),
@@ -560,7 +612,7 @@ def CreateTabCoursCreation():
 
                     id="Tab-CoursCreation",
 
-                    label="Create",
+                    label="Create / Modif",
 
                     className=" nav-link  active tab-pane show",
 
@@ -572,36 +624,87 @@ def CreateTabCoursCreation():
                             id='CoursInfo',
                             className='card border-primary mb-3',
                             children=[
+                                    html.Label('Cours Id'),
+                                    # dcc.Input(id='CoursId',className="form-control",type="text",value="-1",size="30",placeholder="Id"),
+                                    dcc.Dropdown(id='CoursId',className="form-control",
+                                                options=[],
+                                                value=None,
+                                                ),
+                                    html.Div(style={"display":"flex"},children=[
+                                    html.Label('Cours Date',style={"width":"33%"}),
+                                    html.Label('Cours Date Hour',style={"width":"33%"}),
+                                    html.Label('Cours Date Minute',style={"width":"33%"}),
+                                    ]),
+                                    html.Div(style={"display":"flex"},children=[
 
-                                    dcc.Input(id='CoursId',className="form-control",type="text",value="-1",size="30",placeholder="Id"),
                                     dcc.DatePickerSingle(
                                         id='CoursDate',
                                         min_date_allowed=date(1900, 1, 1),
                                         max_date_allowed=date(2100, 1, 1),
                                         initial_visible_month=date(2022, 1, 1),
-                                        date= today# date(2017, 8, 25)
+                                        date= today,# date(2017, 8, 25),
+                                        display_format="DD/MM/YYYY",
+                                        style={"width":"33%"}
                                     ),
+                                    dcc.Dropdown(id="CoursHour",className="form-control",
+                                                options=optionsHours,
+                                                value=10,
+                                                style={"width":"33%"},
+                                                searchable=False,
+                                                clearable=False,
+                                                ),
+                                    dcc.Dropdown(id="CoursMinutes",className="form-control",
+                                                options=optionsMinutes,
+                                                value=0,
+                                                style={"width":"33%"},
+                                                searchable=False,
+                                                clearable=False,
+                                                ),
+                                    ]),
+
+                                    html.Div(style={"height":"15px"}),
+
+                                    html.Label('Sudent Id'),
                                     dcc.Input(id='CoursStudentId',disabled=True,className="form-control",type="text",value="",size="30",placeholder="StudentId"),
-                                    dcc.Input(id='CoursNHourReal',className="form-control",type="text",value="",size="30",placeholder="NHourReal"),
-                                    dcc.Input(id='CoursNHourFacturee',className="form-control",type="text",value="",size="30",placeholder="NHourFacturee"),
-                                    # dcc.Input(id='CoursSurPlace',className="form-control",type="text",value="",size="30",placeholder="SurPlace"),
+                                    html.Div(style={"height":"15px"}),
+
+                                    html.Div(style={"display":"flex"},children=[
+
+                                        html.Label('N Hour real',style={"width":"33%"}),
+                                        html.Label('N Hour facturee',style={"width":"33%"}),
+                                        html.Label('N Hour preparation',style={"width":"33%"}),
+                                    ]),
+                                    html.Div(style={"display":"flex"},children=[
+                                        dcc.Input(id='CoursNHourReal',className="form-control",type="text",value="",size="30",placeholder="NHourReal",style={"width":"33%"}),
+                                        dcc.Input(id='CoursNHourFacturee',className="form-control",type="text",value="",size="30",placeholder="NHourFacturee",style={"width":"33%"}),
+                                        dcc.Input(id='CoursNHourPreparation',className="form-control",type="text",value="",size="30",placeholder="NHourPreparation",style={"width":"33%"}),
+                                    ]),
+                                    html.Div(style={"height":"15px"}),
+
                                     html.Label('Sur place :'),
                                     dcc.Dropdown(id='CoursSurPlace',className="form-control",value="Yes",
                                         options=['Yes','No']),
 
-                                    dcc.Input(id='CoursNHourPreparation',className="form-control",type="text",value="",size="30",placeholder="NHourPreparation"),
                                     # dcc.Input(id='CoursNiveau',className="form-control",type="text",value="",size="30",placeholder="Niveau"),
+                                    html.Label('Niveau :'),
                                     dcc.Dropdown(id='CoursNiveau',className="form-control",value="Terminal",
                                         options=["Pass","L3",'L2','L1',"Terminal","Premiere","Seconde","3e","4e","5e","6e"]),
 
-                                    dcc.Input(id='CoursHourPriceHT',className="form-control",type="text",value="",size="30",placeholder="HourPriceHT"),
-
+                                    html.Label('Facture Id :'),
+                                    dcc.Input(id='CoursFactureId',disabled=True,className="form-control",type="text",value="",size="30",placeholder="Facture Id"),
                                     html.Div(style={"height":"50px"}),
-                                    html.Button("Create",id="CreateCoursButton",n_clicks=0,className='btn btn-lg btn-info',style={"min-height":"20px","max-width":"300px"}),
-                                    html.Button("Modify",id="ModifCoursButton",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","max-width":"300px"}),
-                                    html.Button("Delete",id="DeleteCoursButton",n_clicks=0,className='btn btn-lg btn-danger',style={"min-height":"20px","max-width":"300px"}),
-                                    html.Div(style={"height":"5px"}),
-                            
+
+
+                                    html.Label('Price HT per hour:'),
+                                    dcc.Input(id='CoursHourPriceHT',className="form-control",type="text",value="",size="30",placeholder="HourPriceHT"),
+                                    html.Div(style={"height":"50px"}),
+
+                                    html.Div(style={"display":"flex"},children=[
+                                        html.Button("Create",id="CreateCoursButton",n_clicks=0,className='btn btn-lg btn-info',style={"min-height":"20px","width":"25%"}),
+                                        html.Button("Modify",id="ModifCoursButton",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","width":"25%"}),
+                                        html.Button("Delete",id="DeleteCoursButton",n_clicks=0,className='btn btn-lg btn-danger',style={"min-height":"20px","width":"25%"}),
+                                        html.Div(style={"height":"5px"}),
+                                    ]),                            
                             ])
                     ]
     )  
@@ -771,6 +874,9 @@ def GetTotalLayout(Config=None):#figs):
                     ),
 
         dbc.Row([
+
+            html.H1("FFacOS"),
+            html.Div(style={"height":"15px"}),
 
             dbc.Col([
 
