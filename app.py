@@ -52,6 +52,9 @@ StartErrors = []
 
 
 
+Db_password=os.environ['DB_passwd']
+
+
 
 
 
@@ -98,7 +101,7 @@ def RunAPI():
     mydb = mysql.connector.connect(
         host="localhost",
         user="admin",
-        passwd="yYabMUZSTCw8IdtBhQlt",
+        passwd=Db_password,
         port=3307,
         database="ffacosdb"
     )
