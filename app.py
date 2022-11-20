@@ -2472,11 +2472,25 @@ def SubmitClientToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenoms,civilit
 
             return ReturnFailNotif('Could not update Db with Urssaf Id : '+str(idUrssaf))
     
+    elif req.status_code == 400:
+
+        infos  = json.loads(req.text)[0]
+        print(infos)
+        Code= infos["code"]
+        Message= infos["message"]
+        Desc= infos["description"]
+        return ReturnFailNotif('Failed Bad request (400) : '+str(Code)+" => "+str(Message)+' ... '+str(Desc))
+    elif req.status_code == 401:
+        return ReturnFailNotif('Failed : Bad authentification ! (401)')
+    elif req.status_code == 503:
+        return ReturnFailNotif('Failed : API unavailable ! (503)')
+    elif req.status_code == 500:
+        return ReturnFailNotif('Failed : API server internal error ! (500)')
     else:
         print(req)
         # print(req.body)
 
-        return ReturnFailNotif('Fail request to API Urssaf : '+str(req.status_code))
+        return ReturnFailNotif('Failed request to API Urssaf : '+str(req.status_code))
 
 # https://api-edi.urssaf.fr
 
