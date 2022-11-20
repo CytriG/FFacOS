@@ -2259,7 +2259,7 @@ def CreateHttpRequest(url,data):
 
 
     # req = requests.get(url)
-    hed = {'Authorization': 'Bearer ' + "J_4W7eTIB2wxSVCUFZH87EnZGtrlAswDx56YYD-anhY",
+    hed = {'Authorization': 'Bearer ' + "XXXXX",
             "Content-Type":"application/json"}# "4BK5WVGVqb9hER5mWNnIIgDdbcw0s_pkz5in9N4AKyE"}
     req = requests.post(url,json=data,headers=hed)# ("Bearer","4BK5WVGVqb9hER5mWNnIIgDdbcw0s_pkz5in9N4AKyE"))
     
@@ -2300,7 +2300,7 @@ def pretty_print_POST(req):
 
     
 def PrepareRequest(url,data):
-    hed = {'Authorization': 'Bearer ' + "J_4W7eTIB2wxSVCUFZH87EnZGtrlAswDx56YYD-anhY",
+    hed = {'Authorization': 'Bearer ' + "XXXX",
             "Content-Type":"application/json"}# "4BK5WVGVqb9hER5mWNnIIgDdbcw0s_pkz5in9N4AKyE"}
 
 
