@@ -38,6 +38,10 @@ import mysql.connector
 
 import Layout
 
+
+import requests
+
+from datetime import datetime
  
 Config = None
 
@@ -49,13 +53,14 @@ StartWarnings = []
 
 StartErrors = []
 
+print(type(os.environ))
+print(os.environ)
 
 
-
-Db_password=os.environ['DB_passwd']
-
+Db_password=os.environ.get('DB_passwd')
 
 
+print(Db_password)
 
 
 
@@ -116,9 +121,11 @@ def GetMasterNextNumFacture():
 
             SELECT NumFacture
 
-            FROM factures Order by NumFacture desc  Limit 1 ;
+            FROM factures ;
 
             '''
+            # Order by NumFacture desc ;
+            #  Limit 1 ;
 
     print()
     print("-- GetMasterNextNumFacture")
@@ -126,11 +133,16 @@ def GetMasterNextNumFacture():
 
     res = ReadAPIQuery(query_sql=query_sql)
 
+    res['NumFacture'] = res['NumFacture'].astype('int')
+
+    maxf = res['NumFacture'].max()
+
+
     if res.empty:
         return 0
     else:
-        return int(res.iloc[0])+1
-
+        # return int(res['NumFacture'].iloc[0])+1
+        return maxf+1
  
 
 
@@ -346,8 +358,8 @@ def GetClients(trigger,Email=None):
             Output('ClientInfoId',"value"),
             Output('ClientInfoNom',"value"),
             Output('ClientInfoPrenoms',"value"),
-            Output('ClientInfoNomUsage',"value"),
             Output('ClientInfoCivilite',"value"),
+            Output('ClientInfoNomUsage',"value"),
             Output('ClientInfoDateNaissance',"date"),
             Output('ClientInfoPaysNaissance',"value"),
             Output('ClientInfoDepNaissance',"value"),
@@ -703,8 +715,8 @@ def ModifClient(trigger,id,*values):
     Cols=[ 
             'Nom',
             'Prenoms',
-            'Civilite',
             'NomUsage',
+            'Civilite',
             'DateNaissance',
             'PaysNaissance',
             'DepNaissance',
@@ -1279,6 +1291,8 @@ def GetCours(trigger,StudentId,Email=None):
             ch=[]
             for k in r:
                 ch.append(html.P(className="mb-1",children=str(k)+" : "+str(r[k])))
+
+            ch.append(html.Div(id="ModifyButtonCours_"+str(r['Id']),className="btn btn-info",children="Modify"))
 
             classname = "list-group-item list-group-item-action flex-column align-items-start"
             if i%2==0:
@@ -2231,7 +2245,249 @@ def ModifFacture(trigger,id,*values):
 
 
 
+
+
+
+
+
+
+
+
+
+def CreateHttpRequest(url,data):
+
+
+
+    # req = requests.get(url)
+    hed = {'Authorization': 'Bearer ' + "J_4W7eTIB2wxSVCUFZH87EnZGtrlAswDx56YYD-anhY",
+            "Content-Type":"application/json"}# "4BK5WVGVqb9hER5mWNnIIgDdbcw0s_pkz5in9N4AKyE"}
+    req = requests.post(url,json=data,headers=hed)# ("Bearer","4BK5WVGVqb9hER5mWNnIIgDdbcw0s_pkz5in9N4AKyE"))
+    
+    print('llllllllllllllllllllllllllllllllllll')
+    print(req.request.url)
+    print(req.request.body)
+    print(req.request.headers)
+
+    print('llllllllllllllllllllllllllllllllllll')
+
+    print(req)
+    print(req.status_code)
+    print(req.text)
+    print(req.__dict__)
+    print(req.headers)
+    # print(req.json())
+
+    return req
+
+
+
+def pretty_print_POST(req):
+    """
+    At this point it is completely built and ready
+    to be fired; it is "prepared".
+
+    However pay attention at the formatting used in 
+    this function because it is programmed to be pretty 
+    printed and may differ from the actual request.
+    """
+    print('{}\n{}\r\n{}\r\n\r\n{}'.format(
+        '-----------START-----------',
+        req.method + ' ' + req.url,
+        '\r\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
+        req.body,
+    ))
+
+
+    
+def PrepareRequest(url,data):
+    hed = {'Authorization': 'Bearer ' + "J_4W7eTIB2wxSVCUFZH87EnZGtrlAswDx56YYD-anhY",
+            "Content-Type":"application/json"}# "4BK5WVGVqb9hER5mWNnIIgDdbcw0s_pkz5in9N4AKyE"}
+
+
+    req = requests.Request('POST',url,json=json.dumps(data),headers=hed)
+    prepared = req.prepare()
+
+
+    pretty_print_POST(prepared)
+
+
+
+
+
+
+####################################################
+
+
+
+# URSSAF
+
+
+###################################################
+
  
+
+
+
+@app.callback(
+
+    output=[
+        Output('API_response_fail','is_open'),
+        Output('API_response_fail','children'), 
+        Output('API_response_warning','is_open'),
+        Output('API_response_warning','children'), 
+        Output('API_response_success','is_open'),
+        Output('API_response_success','children'), 
+    ],
+    inputs = [
+
+
+            Input('SubmitTOUrssafClientButton', 'n_clicks') ,  
+
+            State('ClientInfoId',"value"),
+            State('ClientInfoEmail',"value"),
+            State('ClientInfoTel',"value"),
+
+            State('ClientInfoNom',"value"),
+            State('ClientInfoNomUsage',"value"),
+            State('ClientInfoPrenoms',"value"),
+            State('ClientInfoCivilite',"value"),
+
+            State('ClientInfoDateNaissance',"date"),
+            State('ClientInfoPaysNaissance',"value"),
+            State('ClientInfoDepNaissance',"value"),
+            State('ClientInfoVilleNaissance',"value"),
+            State('ClientInfoCodeVilleNaissance',"value"),
+
+
+
+            State('ClientAdresseNumVoie',"value"),
+            State('ClientAdresseLettreVoie',"value"),
+            State('ClientAdresseCodeVoie',"value"),
+            State('ClientAdresseVoie',"value"),
+            State('ClientAdresseComplement',"value"),
+            State('ClientAdresseLieuDit',"value"),
+            State('ClientAdresseVille',"value"),
+            State('ClientAdresseCodeVille',"value"),
+            State('ClientAdresseCodePostal',"value"),
+            State('ClientAdresseCodePays',"value"),
+
+
+
+            State('ClientBIC',"value"),
+            State('ClientIBAN',"value"),
+            State('ClientBanqueTitulaire',"value"),
+
+
+    ],
+    prevent_initial_call = True
+
+
+)
+def SubmitClientToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenoms,civilite,
+                            datenaissance,paysnaissance,depnaissance,villenaissance,codevillenaissance,
+                            adressnumvoie,adresslettre, adresscodevoie,adressevoie,adresscomplement,adresslieudit,adressville,adresscodeville,adresscodepostal,adresscodepays,
+                            BIC,IBAN,BankTitulaire):
+
+
+    datenaissance = datetime.strptime(datenaissance,"%Y-%m-%d")
+    datenaissance = datenaissance.isoformat()+'.000Z' 
+
+    print()
+    print()
+    print("------------ SubmitClientToUrssaf")
+
+    print(datenaissance)
+
+    data =     {
+        "civilite": str(civilite),#"\""+str(civilite)+"\"",#"\"1\"",
+        "nomNaissance": nom,
+        "nomUsage": nomusage,
+        "prenoms": prenoms,
+        "dateNaissance": datenaissance,
+        "lieuNaissance": {
+            "codePaysNaissance": paysnaissance,#"99100",
+            "departementNaissance": depnaissance,#"069",
+            "communeNaissance": {
+                "codeCommune" : codevillenaissance,
+                "libelleCommune": villenaissance,
+            }
+        },
+        "numeroTelephonePortable": tel,#"0605040302",
+        "adresseMail": email,#"jeanne.durand@contact.fr",
+        "adressePostale": {
+            "numeroVoie": adressnumvoie,
+            "lettreVoie": adresslettre,
+            "codeTypeVoie": adresscodevoie,#"R",
+            "libelleVoie": adressevoie,#"du Soleil",
+            "complement": adresscomplement,#"Batiment A",
+            "lieuDit": adresslieudit,#"Le Beyssat",
+            "libelleCommune": adressville,#"LYON 01",
+            "codeCommune": adresscodeville,#"69101",
+            "codePostal": adresscodepostal,#"69001",
+            "codePays": adresscodepays,# "99100"
+        },
+        "coordonneeBancaire": {
+            "bic": BIC,#"BNAPFRPPXXX",
+            "iban": IBAN,#"FR7630006000011234567890189",
+            "titulaire": BankTitulaire,#"Mme Jeanne Martin"
+        }
+    }
+
+    print(data)
+    print(json.dumps(data))
+
+
+    # req = PrepareRequest(url="https://api-edi.urssaf.fr/atp/v1/tiersPrestations/particulier",data=data)
+
+
+    req = CreateHttpRequest(url="https://api-edi.urssaf.fr/atp/v1/tiersPrestations/particulier",data=data)
+
+
+    print(req.text)
+
+    if req.status_code == 200:
+
+        idUrssaf= json.loads(req.text)["idClient"]
+
+        query_sql = '''
+
+        UPDATE clients
+
+        set IdUrssaf=XXXValueXXX
+        
+        WHERE Id= XXidXX;
+        '''
+        query_sql = query_sql.replace('XXidXX', str(clientId)) #'""')
+        query_sql = query_sql.replace('XXXValueXXX','"'+str(idUrssaf)+'"') #'""')
+
+        print(query_sql)
+
+        try:
+
+            res = InsertAPIQuery(query_sql=query_sql)
+
+            return ReturnSuccessNotif('Done!')
+
+        except mysql.connector.errors.InterfaceError :
+
+            return ReturnFailNotif('Could not update Db with Urssaf Id : '+str(idUrssaf))
+    
+    else:
+        print(req)
+        # print(req.body)
+
+        return ReturnFailNotif('Fail request to API Urssaf : '+str(req.status_code))
+
+# https://api-edi.urssaf.fr
+
+
+
+
+
+
+
+
+
 if __name__=="__main__":
 
 

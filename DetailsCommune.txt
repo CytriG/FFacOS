@@ -1,0 +1,13 @@
+Nom de la variable 	Longueur de la variable 	Désignation et modalités de la variable
+TYPECOM 	4 	Type de commune
+COM 	5 	Code commune
+REG 	2 	Code région
+DEP 	3 	Code département
+CTCD 	4 	Code de la collectivité territoriale ayant les compétences départementales
+ARR 	4 	Code arrondissement
+TNCC 	1 	Type de nom en clair
+NCC 	200 	Nom en clair (majuscules)
+NCCENR 	200 	Nom en clair (typographie riche)
+LIBELLE 	200 	Nom en clair (typographie riche) avec article
+CAN 	5 	Code canton. Pour les communes « multi-cantonales » code décliné de 99 à 90 (pseudo-canton) ou de 89 à 80 (communes nouvelles)
+COMPARENT 	5 	Code de la commune parente pour les arrondissements municipaux et les communes associées ou déléguées. 
