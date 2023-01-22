@@ -141,7 +141,7 @@ def CreateTabFactureDemandePaiment():
                         value=None,
                         ),
                         html.Div(style={"height":"30px"}),
-                        html.Button("Submit To Urssaf",id="SubmitTOUrssafDemandePaiement-button",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","max-width":"300px"}),
+                        html.Button("Demande Paiement To Urssaf",id="SubmitTOUrssafDemandePaiement-button",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","max-width":"300px"}),
                     ])
 
                 ]
@@ -592,6 +592,7 @@ def CreateTabCoursList():
                                             # html.Button("Delete",id="DeleteStudentButton",n_clicks=0,className='btn btn-lg btn-danger',style={"min-height":"20px","max-width":"300px"}),
 
                                             html.Button("Get Cours",id="GetCoursButton",n_clicks=0,className='btn btn-lg btn-info',style={"min-height":"20px","max-width":"300px"}),
+                                            html.Button("Add Cours",id="AddCoursButton",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","max-width":"300px"}),
 
                                         ])
                                     ]),
@@ -896,7 +897,8 @@ def GetTotalLayout(Config=None):#figs):
 
 
         dbc.Modal(id="ModalModifCours",
-            children=CoursModif()
+            children=CoursModif(),
+            is_open=False
         ),
  
 

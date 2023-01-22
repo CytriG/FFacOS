@@ -260,6 +260,39 @@ def ReturnNotif(Type="Fail",Message="Error"):
 
 
  #  Clients
+def GetClientFromClientId(ClientId):
+
+    Clients = []
+
+    query_sql = '''
+
+                SELECT *
+
+                FROM Clients
+
+                WHERE Id=XXXIdXXX;
+
+                '''
+
+    # query_sql = query_sql.replace('XXXEmailXX', Email) #'""')
+
+    query_sql = query_sql.replace('XXXIdXXX', str(ClientId))#','.join(['email','long_id']))
+
+    print()
+    print("-- GetClient "+str(ClientId))
+    print(query_sql)
+
+
+    try:
+
+        res = ReadAPIQuery(query_sql=query_sql)
+    except mysql.connector.errors.InterfaceError :
+
+        return False
+
+    return res
+
+
 
 def GetClients(trigger,Email=None):
 
@@ -309,8 +342,6 @@ def GetClients(trigger,Email=None):
 
         return Clients,*ReturnFailNotif('Can\'t access Local Db')
 
- 
-
     if res.empty:
         return Clients, *ReturnWarningNotif('No Client found !')
 
@@ -332,7 +363,6 @@ def GetClients(trigger,Email=None):
         # )
 
         Clients.append({"label":r['Nom']+" "+r['Prenoms'],"value":r['Id']})
-
 
     return Clients, *ReturnSuccessNotif('Done !')
 
@@ -1187,6 +1217,32 @@ def GetStudent(trigger):
 
 
 #  Cours
+
+
+
+
+
+@app.callback(
+        output=[
+            Output('ModalModifCours','is_open'),
+        ],
+        inputs=[   
+            Input('AddCoursButton', 'n_clicks')  , 
+        ],
+
+        state=[  
+            State('ModalModifCours','is_open')
+        ],
+
+        prevent_initial_call=True,
+
+)
+def OpenCoursModal(trigger,is_open):
+
+    return not is_open
+
+
+
 
 
 def GetCoursFromCoursId(CoursId):
@@ -2250,32 +2306,56 @@ def ModifFacture(trigger,id,*values):
 
 
 
+def GetBearer():
 
+    print()
+    print("---- GetBearer")
 
+    hed = {"Content-Type":"application/x-www-form-urlencoded"}
+    data = {
+        "scope":"homeplus.tiersprestations",
+        "grant_type": "client_credentials",
+        "client_id" :os.environ.get('URSSAF_client_id'),
+        "client_secret":os.environ.get('URSSAF_client_secret')
+    }
+    url='https://api-edi.urssaf.fr/api/oauth/v1/token'
+
+    req = requests.post(url,data=data,headers=hed)# ("Bearer","4BK5WVGVqb9hER5mWNnIIgDdbcw0s_pkz5in9N4AKyE"))
+
+    print(json.loads(req.text)['access_token'])
+    return json.loads(req.text)['access_token']
 
 
 def CreateHttpRequest(url,data):
 
 
 
-    # req = requests.get(url)
-    hed = {'Authorization': 'Bearer ' + "XXXXX",
+    bearer = GetBearer()
+
+    print()
+    print("---- CreateHttpRequest")
+
+    # req = requests.get(url)   
+    hed = {'Authorization': 'Bearer ' + bearer,
             "Content-Type":"application/json"}# "4BK5WVGVqb9hER5mWNnIIgDdbcw0s_pkz5in9N4AKyE"}
     req = requests.post(url,json=data,headers=hed)# ("Bearer","4BK5WVGVqb9hER5mWNnIIgDdbcw0s_pkz5in9N4AKyE"))
     
-    print('llllllllllllllllllllllllllllllllllll')
-    print(req.request.url)
-    print(req.request.body)
-    print(req.request.headers)
 
-    print('llllllllllllllllllllllllllllllllllll')
+    reqq = requests.Request('POST',url,json=data,headers=hed)
+    prepped  = reqq.prepare()
+
+    print(reqq)
+    print(prepped.__dict__)
+    print(prepped.body)
+    print("---- ")
+
 
     print(req)
     print(req.status_code)
     print(req.text)
-    print(req.__dict__)
-    print(req.headers)
-    # print(req.json())
+    print(req.content)
+
+    print("---- ")
 
     return req
 
@@ -2326,7 +2406,12 @@ def PrepareRequest(url,data):
 
  
 
+def ModifyDateNaissanceForURSSAF(date):
 
+    date = datetime.strptime(date,"%Y-%m-%d")
+    date = date.isoformat()+'.000Z' 
+
+    return date
 
 @app.callback(
 
@@ -2389,9 +2474,9 @@ def SubmitClientToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenoms,civilit
                             BIC,IBAN,BankTitulaire):
 
 
-    datenaissance = datetime.strptime(datenaissance,"%Y-%m-%d")
-    datenaissance = datenaissance.isoformat()+'.000Z' 
-
+    # datenaissance = datetime.strptime(datenaissance,"%Y-%m-%d")
+    # datenaissance = datenaissance.isoformat()+'.000Z' 
+    datenaissance = ModifyDateNaissanceForURSSAF(datenaissance)
     print()
     print()
     print("------------ SubmitClientToUrssaf")
@@ -2496,6 +2581,262 @@ def SubmitClientToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenoms,civilit
 
 
 
+
+
+@app.callback(
+
+    output=[
+        Output('API_response_fail','is_open'),
+        Output('API_response_fail','children'), 
+        Output('API_response_warning','is_open'),
+        Output('API_response_warning','children'), 
+        Output('API_response_success','is_open'),
+        Output('API_response_success','children'), 
+    ],
+    inputs = [
+
+
+            Input('SubmitTOUrssafDemandePaiement-button', 'n_clicks') ,  
+
+            State('ClientInfoId',"value"),
+            State('ClientInfoEmail',"value"),
+            State('ClientInfoTel',"value"),
+
+            State('ClientInfoNom',"value"),
+            State('ClientInfoNomUsage',"value"),
+            State('ClientInfoPrenoms',"value"),
+            State('ClientInfoCivilite',"value"),
+
+            State('ClientInfoDateNaissance',"date"),
+            State('ClientInfoPaysNaissance',"value"),
+            State('ClientInfoDepNaissance',"value"),
+            State('ClientInfoVilleNaissance',"value"),
+            State('ClientInfoCodeVilleNaissance',"value"),
+
+
+
+            State('ClientAdresseNumVoie',"value"),
+            State('ClientAdresseLettreVoie',"value"),
+            State('ClientAdresseCodeVoie',"value"),
+            State('ClientAdresseVoie',"value"),
+            State('ClientAdresseComplement',"value"),
+            State('ClientAdresseLieuDit',"value"),
+            State('ClientAdresseVille',"value"),
+            State('ClientAdresseCodeVille',"value"),
+            State('ClientAdresseCodePostal',"value"),
+            State('ClientAdresseCodePays',"value"),
+
+
+
+            State('ClientBIC',"value"),
+            State('ClientIBAN',"value"),
+            State('ClientBanqueTitulaire',"value"),
+
+
+    ],
+    prevent_initial_call = True
+
+
+)
+def SubmitDemandePaiementToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenoms,civilite,
+                            datenaissance,paysnaissance,depnaissance,villenaissance,codevillenaissance,
+                            adressnumvoie,adresslettre, adresscodevoie,adressevoie,adresscomplement,adresslieudit,adressville,adresscodeville,adresscodepostal,adresscodepays,
+                            BIC,IBAN,BankTitulaire):
+
+
+    datenaissance = datetime.strptime(datenaissance,"%Y-%m-%d")
+    datenaissance = datenaissance.isoformat()+'.000Z' 
+
+    print()
+    print()
+    print("------------ SubmitDemandePaiementToUrssaf")
+
+    print(clientId)
+
+    cli = GetClientFromClientId(21)#clientId)
+
+    if cli.empty:
+        return ReturnFailNotif('Cant find Client with Id '+str(clientId))
+
+
+    cli = cli.iloc[0]
+
+    cli['DateNaissance'] = ModifyDateNaissanceForURSSAF(cli['DateNaissance'])
+
+    print(cli)
+    print(type(cli['Email']))
+
+    # return ReturnSuccessNotif('TempSuccess')
+
+
+    data =     {
+        # "civilite": str(civilite),#"\""+str(civilite)+"\"",#"\"1\"",
+        # "nomNaissance": cli['Nom'],
+        # "nomUsage": cli['NomUsage'],
+        # "prenoms": cli['Prenoms'],
+        "dateNaissanceClient":  cli['DateNaissance'],
+        # "adresseMail":  "\""+cli['Email']+"\"",
+        # "numeroTelephonePortable":  str(cli['Tel']),
+        # "lieuNaissance": {
+        #     "codePaysNaissance": cli['PaysNaissance'],#"99100",
+        #     "departementNaissance": cli['DepNaissance'],#"069",
+        #     "communeNaissance": {
+        #         "codeCommune" : cli['CodeVilleNaissance'],
+        #         "libelleCommune": cli['VilleNaissance'],
+        #     }
+        # },
+        # "numeroTelephonePortable": tel,#"0605040302",
+        # "adresseMail": email,#"jeanne.durand@contact.fr",
+        # "adressePostale": {
+        #     "numeroVoie": cli['AdresseNumVoie'],
+        #     "lettreVoie": cli['AdresseLettreVoie'],
+        #     "codeTypeVoie":  cli['AdresseCodeVoie'],
+        #     "libelleVoie": cli['AdresseVoie'],
+        #     "complement": cli['AdresseComplement'],
+        #     "lieuDit": cli['AdresseLieuDit'],
+        #     "libelleCommune": cli['AdresseVille'],
+        #     "codeCommune": cli['AdresseCodeVille'],
+        #     "codePostal": cli['AdresseCodePostal'],
+        #     "codePays": cli['AdresseCodePays'],
+        # },
+        # "coordonneeBancaire": {
+        #     "bic": cli['BanqueBIC'],
+        #     "iban":cli['BanqueIBAN'],
+        #     "titulaire": cli['BanqueTitulaire'],
+        # },
+        "idClient":cli['IdUrssaf'],
+    }
+
+
+    # data.update( {
+    #         "idTiersFacturation": "1081230",
+    #         # "idClient": "11000000000104",
+    #         # "dateNaissanceClient": "1986-11-30T00:00:00Z",
+    #         # "numFactureTiers": "11000000000104",
+    #         "dateFacture": "2019-12-01T00:00:00Z",
+    #         "dateDebutEmploi": "2019-11-01T00:00:00Z",
+    #         "dateFinEmploi": "2019-11-30T00:00:00Z",
+    #         "mntAcompte": 100,
+    #         "dateVersementAcompte": "2019-11-25T00:00:00Z",
+    #         "mntFactureTTC": 2000,
+    #         "mntFactureHT": 1800,
+    #         "inputPrestations": [
+    #         {
+    #             "codeActivite": "01",
+    #             "codeNature": "ENF",
+    #             "quantite": 1.75,
+    #             "unite": "HEURE",
+    #             "mntUnitaireTTC": 20,
+    #             "mntPrestationTTC": 120,
+    #             "mntPrestationHT": 100,
+    #             "mntPrestationTVA": 20,
+    #             "dateDebutEmploi": "2019-11-01T00:00:00Z",
+    #             "dateFinEmploi": "2019-11-30T00:00:00Z",
+    #             "complement1": "Complément 1 ",
+    #             "complement2": "Complément 2 "
+    #         }
+    #         ]
+    #     }
+    # )
+
+    data.update({
+		"idTiersFacturation": "90197663900012",#"d52274e2-af3a-4157-a4b7-3d5ac5709c19",
+		# "idClient": "11000000000104",
+		# "dateNaissanceClient": "1986-11-30T00:00:00Z",
+		"numFactureTiers": "11000050000104",
+		"dateFacture": "2023-01-10T00:00:00Z",
+		"dateDebutEmploi": "2023-01-01T00:00:00Z",
+		"dateFinEmploi": "2023-01-22T00:00:00Z",
+		"mntAcompte": 0,
+		"dateVersementAcompte": "2022-11-25T00:00:00Z",
+		"mntFactureTTC": 100,
+		"mntFactureHT": 100,
+		"inputPrestations": [
+			{
+				# "codeActivite": "01",
+				"codeNature": "ENF",
+				"quantite": 1,
+				"unite": "HEURE",
+				"mntUnitaireTTC": 100,
+				"mntPrestationTTC": 100,
+				"mntPrestationHT": 100,
+				"mntPrestationTVA": 0,
+				# "dateDebutEmploi": "2022-11-01T00:00:00Z",
+				# "dateFinEmploi": "2022-11-30T00:00:00Z",
+				# "complement1": "Complement 1 ",
+				# "complement2": "Complement 2 "
+			}
+		]
+	}
+    )
+    data = [data]
+
+    print("uuuuuuuuuuuuuuuuuuu")
+    print(data)
+    print(json.dumps(data))
+    print("uuuuuuuuuuuuuuuuuuu")
+
+
+    # req = PrepareRequest(url="https://api-edi.urssaf.fr/atp/v1/tiersPrestations/particulier",data=data)
+
+
+    # req = CreateHttpRequest(url="https://api-edi.urssaf.fr/atp/v1/tiersPrestations/particulier",data=data)
+    req = CreateHttpRequest(url="https://api-edi.urssaf.fr/atp/v1/tiersPrestations/demandePaiement",data=data)
+
+
+    print("Req response")
+    # print(json.load(req))
+    print(req.text)
+    print(req.content)
+
+
+    if req.status_code == 200:
+
+        # idUrssaf= json.loads(req.text)["idClient"]
+        print(json.loads(req.text))
+        return ReturnSuccessNotif('TempSuccess')
+        query_sql = '''
+
+        UPDATE clients
+
+        set IdUrssaf=XXXValueXXX
+        
+        WHERE Id= XXidXX;
+        '''
+        query_sql = query_sql.replace('XXidXX', str(clientId)) #'""')
+        query_sql = query_sql.replace('XXXValueXXX','"'+str(idUrssaf)+'"') #'""')
+
+        print(query_sql)
+
+        try:
+
+            res = InsertAPIQuery(query_sql=query_sql)
+
+            return ReturnSuccessNotif('Done!')
+
+        except mysql.connector.errors.InterfaceError :
+
+            return ReturnFailNotif('Could not update Db with Urssaf Id : '+str(idUrssaf))
+    
+    elif req.status_code == 400:
+
+        infos  = json.loads(req.text)[0]
+        print(infos)
+        Code= infos["code"]
+        Message= infos["message"]
+        Desc= infos["description"]
+        return ReturnFailNotif('Failed Bad request (400) : '+str(Code)+" => "+str(Message)+' ... '+str(Desc))
+    elif req.status_code == 401:
+        return ReturnFailNotif('Failed : Bad authentification ! (401)')
+    elif req.status_code == 503:
+        return ReturnFailNotif('Failed : API unavailable ! (503)')
+    elif req.status_code == 500:
+        return ReturnFailNotif('Failed : API server internal error ! (500)')
+    else:
+        print(req)
+        # print(req.body)
+
+        return ReturnFailNotif('Failed request to API Urssaf : '+str(req.status_code))
 
 
 

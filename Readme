@@ -3,4 +3,8 @@ FFacOS is a billing software connected to French api URSAAF
 
 
 
+Env Var :
 
+    DB_passwd :  MySQL Db password
+    URSSAF_client_id : urssaf credentials
+    URSSAF_client_secret :urssaf credentials
