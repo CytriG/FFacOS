@@ -133,7 +133,7 @@ def GetMasterNextNumFacture():
 
     res = ReadAPIQuery(query_sql=query_sql)
 
-    res['NumFacture'] = res['NumFacture'].astype('int')
+    res['NumFacture'] = res['NumFacture'].astype('float')
 
     maxf = res['NumFacture'].max()
 
@@ -2095,7 +2095,7 @@ def GetFactureList(ClientId):
 
         )
 
-        if(r['StatusDemandePaiementUrssaf'] is None) : 
+        if(r['StatutDemandePaiementUrssaf'] is None) : 
             StrOption = "Id :"+str(r['Id'])+" , Num : "+str(r['NumFacture'])
             DropDownOptions.append(StrOption)
     
@@ -2346,14 +2346,14 @@ def CreateHttpRequest(url,data):
 
     print(reqq)
     print(prepped.__dict__)
-    print(prepped.body)
+    # print(prepped.body)
     print("---- ")
 
 
     print(req)
     print(req.status_code)
     print(req.text)
-    print(req.content)
+    # print(req.content)
 
     print("---- ")
 
@@ -2653,7 +2653,7 @@ def SubmitDemandePaiementToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenom
 
     print(clientId)
 
-    cli = GetClientFromClientId(21)#clientId)
+    cli = GetClientFromClientId(clientId)
 
     if cli.empty:
         return ReturnFailNotif('Cant find Client with Id '+str(clientId))
@@ -2668,6 +2668,12 @@ def SubmitDemandePaiementToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenom
 
     # return ReturnSuccessNotif('TempSuccess')
 
+
+    #! numfacture
+    #! Id Facture
+    #! presta infos => list cours
+    #! lier les cours à la facture !
+    
 
     data =     {
         # "civilite": str(civilite),#"\""+str(civilite)+"\"",#"\"1\"",
@@ -2708,7 +2714,7 @@ def SubmitDemandePaiementToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenom
     }
 
 
-    # data.update( {
+    data.update( {
     #         "idTiersFacturation": "1081230",
     #         # "idClient": "11000000000104",
     #         # "dateNaissanceClient": "1986-11-30T00:00:00Z",
@@ -2720,53 +2726,57 @@ def SubmitDemandePaiementToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenom
     #         "dateVersementAcompte": "2019-11-25T00:00:00Z",
     #         "mntFactureTTC": 2000,
     #         "mntFactureHT": 1800,
-    #         "inputPrestations": [
-    #         {
-    #             "codeActivite": "01",
-    #             "codeNature": "ENF",
-    #             "quantite": 1.75,
-    #             "unite": "HEURE",
-    #             "mntUnitaireTTC": 20,
-    #             "mntPrestationTTC": 120,
-    #             "mntPrestationHT": 100,
-    #             "mntPrestationTVA": 20,
-    #             "dateDebutEmploi": "2019-11-01T00:00:00Z",
-    #             "dateFinEmploi": "2019-11-30T00:00:00Z",
-    #             "complement1": "Complément 1 ",
-    #             "complement2": "Complément 2 "
-    #         }
-    #         ]
-    #     }
-    # )
+            "inputPrestations": [
+            {
+                # "codeActivite": "01",
+                "codeActivite": "",
+                "codeNature": "10",
+                "quantite": 1.0,
+                "unite": "HEURE",
+                "mntUnitaireTTC": 20,
+                "mntPrestationTTC": 20,
+                "mntPrestationHT": 20,
+                "mntPrestationTVA": 0,
+                "dateDebutEmploi": "2023-02-08T00:00:00Z",
+                "dateFinEmploi": "2023-02-08T00:00:00Z",
+                "complement1": "Complément 1 ",
+                "complement2": "Complément 2 "
+            }
+            ]
+        }
+    )
 
     data.update({
-		"idTiersFacturation": "90197663900012",#"d52274e2-af3a-4157-a4b7-3d5ac5709c19",
+		# "idTiersFacturation": "90197663900012",#"d52274e2-af3a-4157-a4b7-3d5ac5709c19",
+		"idTiersFacturation": "menage.fr",#"d52274e2-af3a-4157-a4b7-3d5ac5709c19",
 		# "idClient": "11000000000104",
 		# "dateNaissanceClient": "1986-11-30T00:00:00Z",
-		"numFactureTiers": "11000050000104",
-		"dateFacture": "2023-01-10T00:00:00Z",
-		"dateDebutEmploi": "2023-01-01T00:00:00Z",
-		"dateFinEmploi": "2023-01-22T00:00:00Z",
-		"mntAcompte": 0,
-		"dateVersementAcompte": "2022-11-25T00:00:00Z",
-		"mntFactureTTC": 100,
-		"mntFactureHT": 100,
-		"inputPrestations": [
-			{
-				# "codeActivite": "01",
-				"codeNature": "ENF",
-				"quantite": 1,
-				"unite": "HEURE",
-				"mntUnitaireTTC": 100,
-				"mntPrestationTTC": 100,
-				"mntPrestationHT": 100,
-				"mntPrestationTVA": 0,
-				# "dateDebutEmploi": "2022-11-01T00:00:00Z",
-				# "dateFinEmploi": "2022-11-30T00:00:00Z",
-				# "complement1": "Complement 1 ",
-				# "complement2": "Complement 2 "
-			}
-		]
+		"numFactureTiers": "11000050000114",
+		"dateFacture": "2023-02-08T00:00:00Z",
+		"dateDebutEmploi": "2023-02-08T00:00:00Z",
+		# "dateFinEmploi": "2023-01-22T00:00:00Z",
+		"dateFinEmploi": "2023-02-08T00:00:00Z",
+		# "mntAcompte": 0,
+		# "dateVersementAcompte": "2022-11-25T00:00:00Z",
+		"mntFactureTTC": 20,
+		"mntFactureHT": 20,
+		# "inputPrestations": [
+		# 	{
+		# 		"codeActivite": "01",
+		# 		# "codeActivite": "85",
+		# 		"codeNature": "ENF",
+		# 		"quantite": 1,
+		# 		"unite": "HEURE",
+		# 		"mntUnitaireTTC": 100,
+		# 		"mntPrestationTTC": 100,
+		# 		"mntPrestationHT": 100,
+		# 		"mntPrestationTVA": 0,
+		# 		# "dateDebutEmploi": "2022-11-01T00:00:00Z",
+		# 		# "dateFinEmploi": "2022-11-30T00:00:00Z",
+		# 		# "complement1": "Complement 1 ",
+		# 		# "complement2": "Complement 2 "
+		# 	}
+		# ]
 	}
     )
     data = [data]
@@ -2787,24 +2797,27 @@ def SubmitDemandePaiementToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenom
     print("Req response")
     # print(json.load(req))
     print(req.text)
-    print(req.content)
+    # print(req.content)
 
 
     if req.status_code == 200:
 
-        # idUrssaf= json.loads(req.text)["idClient"]
-        print(json.loads(req.text))
-        return ReturnSuccessNotif('TempSuccess')
+        idUrssaf= json.loads(req.text)[0]["idDemandePaiement"]
+        StatutUrssaf= json.loads(req.text)[0]["statut"]
+
+
+        print(idUrssaf)
         query_sql = '''
 
-        UPDATE clients
+        UPDATE factures
 
-        set IdUrssaf=XXXValueXXX
+        set IdUrssaf=XXXValueIdXXX,  StatutDemandePaiementUrssaf=XXXValueStatusXXX
         
         WHERE Id= XXidXX;
         '''
-        query_sql = query_sql.replace('XXidXX', str(clientId)) #'""')
-        query_sql = query_sql.replace('XXXValueXXX','"'+str(idUrssaf)+'"') #'""')
+        query_sql = query_sql.replace('XXidXX', str(14)) #'""') #! id facture !!!
+        query_sql = query_sql.replace('XXXValueIdXXX','"'+str(idUrssaf)+'"') #'""')
+        query_sql = query_sql.replace('XXXValueStatusXXX','"'+str(StatutUrssaf)+'"') #'""')
 
         print(query_sql)
 
