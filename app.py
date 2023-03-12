@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 from pydoc import classname
 from dash import Dash, html, dcc, callback_context, dash_table
 import plotly.express as px
@@ -11,38 +12,33 @@ pd.options.plotting.backend = "plotly"
 import sys
 # import subprocess
 import time
-
 import os
-
 import numpy as np
-
 import json
-
-
-import matplotlib
-
-matplotlib.use('Agg') # to make matplotlib works in Flask server thread
-
-
-from matplotlib import pyplot as plt
+# import matplotlib
+# matplotlib.use('Agg') # to make matplotlib works in Flask server thread
+# from matplotlib import pyplot as plt
 
 from pprint import pprint
-
- 
 import dash_bootstrap_components as dbc
-
-
 import mysql.connector
-
- 
-
+import requests
+from datetime import datetime
 import Layout
 
+from pathlib import Path
 
-import requests
+import sqlite3 
 
-from datetime import datetime
- 
+print(Path(__file__))
+app_location = Path(__file__).parent
+print(app_location.parent )
+print(app_location / "Db" / "Db.db")
+con=sqlite3.connect(app_location / "Db" / "Db.db")
+
+
+
+
 Config = None
 
 package_directory = os.path.dirname(os.path.abspath(__file__))
@@ -71,6 +67,7 @@ def CheckDb():
     return RunAPI()
 
 
+
 def ReadAPIQuery(query_sql):
 
 
@@ -84,13 +81,22 @@ def ReadAPIQuery(query_sql):
 
     return result_sql
 
-
 def InsertAPIQuery(query_sql):
 
+    # query_sql = '''
+    
+    
+    #         INSERT INTO clients
+
+    #         values(null,"","","1","","2023-02-11","","","","","","","","","","","","","","","","99100","","","",null);
+    # '''
+
+
+    print(query_sql)
 
     mydb = CheckDb()
 
-    mydb.reconnect()
+    # mydb.reconnect()
 
     mycursor = mydb.cursor()
 
@@ -98,18 +104,115 @@ def InsertAPIQuery(query_sql):
 
     mydb.commit()
     mydb.close()
- 
 
+def GetQueryInsertNew(table,*values):
+
+    print(values)
+
+    cols = GetSQLCols(table)["name"].to_list()
+    lastId=GetLastRow(table)['Id']
+    print(lastId)
+
+    if lastId.empty:
+        lastId = -1
+    else:
+        lastId = lastId[0]
+    print(lastId)
+    print(cols)
+
+    Values = [str(lastId+1)]  #Id
+
+
+    query_sql = '''
+
+            INSERT INTO XXXTableNameXXX (XXXXColNamesComaXXX)
+
+            values(XXXXValuesComaXXX);
+
+            '''
+
+    for v in values:
+        Values.append('"'+str(v)+'"')
+
+    Values.append(None) #IdUrsaaf
+
+
+    print(Values)
+    print(cols)
+
+    FinalValues = []
+    FinalCols =[]
+
+    for i,v in enumerate(Values) :
+        if v is not None and v!="\"\"":
+            FinalValues.append(v)
+            FinalCols.append(cols[i])
+
+
+    print(FinalValues)
+    print(FinalCols)
+
+
+    SQLValues = ','.join([ v for v in FinalValues])
+    SQLCols = ','.join([ v for v in FinalCols])
+
+    query_sql = query_sql.replace('XXXTableNameXXX', table) #'""')
+    query_sql = query_sql.replace('XXXXValuesComaXXX', SQLValues) #'""')
+    query_sql = query_sql.replace('XXXXColNamesComaXXX', SQLCols) #'""')
+
+
+    return query_sql
+
+
+ 
+def GetSQLCols(table="clients"):
+
+    mydb = CheckDb()
+
+    query_sql = " pragma table_info(XXXTableNameXXX);"
+    
+    query_sql = query_sql.replace('XXXTableNameXXX',table)
+
+    print(query_sql)
+    result_sql = pd.read_sql_query(query_sql, mydb)
+
+    mydb.close()
+
+    return result_sql
+
+
+def GetLastRow(table='clients',orderCol="Id"):
+
+    
+
+    mydb = CheckDb()
+
+    query_sql = " SELECT * FROM XXXTableNameXXX ORDER By XXXOrderTableNameXXX DESC LIMIT 1;"
+    
+    query_sql = query_sql.replace('XXXTableNameXXX',table)
+    query_sql = query_sql.replace('XXXOrderTableNameXXX',orderCol)
+
+    print(query_sql)
+    result_sql = pd.read_sql_query(query_sql, mydb)
+
+    mydb.close()
+
+    return result_sql
+  
+ 
 def RunAPI():
     
 
-    mydb = mysql.connector.connect(
-        host="localhost",
-        user="admin",
-        passwd=Db_password,
-        port=3307,
-        database="ffacosdb"
-    )
+    # mydb = mysql.connector.connect(
+    #     host="localhost",
+    #     user="admin",
+    #     passwd=Db_password,
+    #     port=3307,
+    #     database="ffacosdb"
+    # )
+
+    mydb=sqlite3.connect(app_location / "Db" / "Db.db")
+
     
     return mydb
 
@@ -257,6 +360,42 @@ def ReturnNotif(Type="Fail",Message="Error"):
 
  
  #************************************************************************************
+
+
+#   Factures
+
+
+def GetFactureFromFactureNum(num):
+
+    query_sql = '''
+
+                SELECT *
+
+                FROM factures
+
+                WHERE NumFacture=XXXIdXXX;
+
+                '''
+
+    # query_sql = query_sql.replace('XXXEmailXX', Email) #'""')
+
+    query_sql = query_sql.replace('XXXIdXXX', str(num))#','.join(['email','long_id']))
+
+    print()
+    print("-- GetFacture "+str(num))
+    print(query_sql)
+
+
+    try:
+
+        res = ReadAPIQuery(query_sql=query_sql)
+    except mysql.connector.errors.InterfaceError :
+
+        return False
+
+    return res
+
+
 
 
  #  Clients
@@ -634,11 +773,24 @@ def GetClientsForClientInfo(trigger,Email=None):
 
 )
 def AddClient(trigger,*values):
-    Values = [None]  #Id
+
+    cols = GetSQLCols("clients")['name'].to_list()
+    lastId=GetLastRow("clients")['Id']
+    print(lastId)
+
+    if lastId.empty:
+        lastId = 0
+    else:
+        lastId = lastId[0]
+    print(lastId)
+    print(cols)
+
+    Values = [str(lastId+1)]  #Id
+
 
     query_sql = '''
 
-            INSERT INTO clients
+            INSERT INTO clients (XXXXColNamesComaXXX)
 
             values(XXXXValuesComaXXX);
 
@@ -650,14 +802,33 @@ def AddClient(trigger,*values):
     Values.append(None) #IdUrsaaf
 
 
+    print(Values)
+    print(cols)
+
+    FinalValues = []
+    FinalCols =[]
+
     for i,v in enumerate(Values) :
-        if v is None:
-            Values[i]='DEFAULT'
+        if v is not None and v!="\"\"":
+            FinalValues.append(v)
+            FinalCols.append(cols[i])
+
+        #     # Values[i]='DEFAULT'
+        #     cols.remove(i)
+        #     Values.pop(i)
+        # elif v=="\"\"":
+        #     cols.pop(i)
+        #     Values.pop(i)
+
+    print(FinalValues)
+    print(FinalCols)
 
 
-    SQLValues = ','.join([ v for v in Values])
+    SQLValues = ','.join([ v for v in FinalValues])
+    SQLCols = ','.join([ v for v in FinalCols])
 
     query_sql = query_sql.replace('XXXXValuesComaXXX', SQLValues) #'""')
+    query_sql = query_sql.replace('XXXXColNamesComaXXX', SQLCols) #'""')
 
     print(query_sql)
 
@@ -784,6 +955,7 @@ def ModifClient(trigger,id,*values):
     for i,v in enumerate(Values) :
         if v is None:
             Values[i]='DEFAULT'
+            continue
 
         SQLValues.append(Cols[i]+"="+Values[i])
 
@@ -895,11 +1067,48 @@ def DeleteClient(trigger,id):
 def AddStudentsToClient(trigger,*values):
 
 
-    Values = [None]  #Id
+    # Values = [None]  #Id
+
+    # query_sql = '''
+
+    #         INSERT INTO students
+
+    #         values(XXXXValuesComaXXX);
+
+    #         '''
+
+    # for v in values:
+    #     Values.append('"'+str(v)+'"')
+
+    # for i,v in enumerate(Values) :
+    #     if v is None:
+    #         Values[i]='DEFAULT'
+
+
+    # SQLValues = ','.join([ v for v in Values])
+
+    # query_sql = query_sql.replace('XXXXValuesComaXXX', SQLValues) #'""')
+
+
+
+
+    cols = GetSQLCols("students")['name'].to_list()
+    lastId=GetLastRow("students")['Id']
+    print(lastId)
+
+    if lastId.empty:
+        lastId = 0
+    else:
+        lastId = lastId[0]
+    print(lastId)
+    print(cols)
+
+    Values = [str(lastId+1)]  #Id
+
 
     query_sql = '''
 
-            INSERT INTO students
+            INSERT INTO students (XXXXColNamesComaXXX)
 
             values(XXXXValuesComaXXX);
 
@@ -908,14 +1117,33 @@ def AddStudentsToClient(trigger,*values):
     for v in values:
         Values.append('"'+str(v)+'"')
 
+    Values.append(None) #IdUrsaaf
+
+
+    print(Values)
+    print(cols)
+
+    FinalValues = []
+    FinalCols =[]
+
     for i,v in enumerate(Values) :
-        if v is None:
-            Values[i]='DEFAULT'
+        if v is not None and v!="\"\"":
+            FinalValues.append(v)
+            FinalCols.append(cols[i])
 
 
-    SQLValues = ','.join([ v for v in Values])
+    print(FinalValues)
+    print(FinalCols)
+
+
+    SQLValues = ','.join([ v for v in FinalValues])
+    SQLCols = ','.join([ v for v in FinalCols])
 
     query_sql = query_sql.replace('XXXXValuesComaXXX', SQLValues) #'""')
+    query_sql = query_sql.replace('XXXXColNamesComaXXX', SQLCols) #'""')
+
+
+
 
 
     print()
@@ -1489,7 +1717,7 @@ def ModifyCoursValuesFromInputs(Values,values):
         elif v=="Yes" or v=="No":
             Values.append(v)
         else:
-            Values.append('"'+str(v)+'"')
+            Values.append(str(v))
 
     Values.append(None) #FactureId
     Values[9] = Values[8] 
@@ -1541,33 +1769,37 @@ def ModifyCoursValuesFromInputs(Values,values):
 def AddCours(trigger,*values):
     Values = [None]  #Id
 
-    query_sql = '''
 
-            INSERT INTO cours
-
-            values(XXXXValuesComaXXX);
-
-            '''
     try : 
 
         Values =  ModifyCoursValuesFromInputs(Values,values)
 
     except ValueError as e:
         return ReturnFailNotif(str(e))
+    print("oooooooooooo")
+
+    Values = np.array(Values)
+    Values = Values[1:]
 
 
-    for i,v in enumerate(Values) :
-        if v is None:
-            Values[i]='DEFAULT'
+    query_sql =  GetQueryInsertNew("cours",*Values)
+
+    print("oooooooooooo")
+    print(query_sql)
 
 
-    SQLValues = ','.join([ v for v in Values])
+    # for i,v in enumerate(Values) :
+    #     if v is None:
+    #         Values[i]='DEFAULT'
+
+
+    # SQLValues = ','.join([ v for v in Values])
 
 
 
 
 
-    query_sql = query_sql.replace('XXXXValuesComaXXX', SQLValues) #'""')
+    # query_sql = query_sql.replace('XXXXValuesComaXXX', SQLValues) #'""')
 
     print()
     print("-- AddCours ")
@@ -1830,16 +2062,25 @@ def GetPrestaListNotLinkedToFacture(ClientId):
     for i,r in Students.iterrows():
         
         res = GetCoursFromStudentId(r['Id'])
-    
-        res = res[res['FactureId'].isna()]
+        print('__')
+        print(res['FactureId'])
+        print(type(res['FactureId']))
+        res = res[res['FactureId'] =="None"]
+        print('__')
+        print(res)
 
         for ii,rr in res.iterrows():
             
             PrestaInfo = rr.to_dict()
             PrestaInfo['StudentName'] = r['Nom']
             PrestaInfo['StudentFirstName'] = r['Prenoms']
-            
-            Prestas[count] = PrestaInfo
+            if rr['Date'] not in Prestas:
+                Prestas[rr['Date']] = PrestaInfo
+            else:
+                counter=2
+                while rr['Date']+'-'+str(counter) in Prestas and counter<100:
+                    counter+=1
+                Prestas[rr['Date']+'-'+str(counter)] = PrestaInfo
             count+=1
 
     print(Prestas)
@@ -1872,7 +2113,7 @@ def AddPrestationToFactureCreationPage(n_clicks,children,ClientId):
     if Prestas is not None and len(Prestas)>0:
         for i,p in enumerate(Prestas):
             # options.append("Id="+str(Prestas[p]["Id"])+" , "+str(Prestas[p]["StudentName"])+" "+str(Prestas[p]["StudentFirstName"])+" , "+str(Prestas[p]["Date"]))
-            options.append(i)#str(Prestas[p]["Id"]))
+            options.append(p)#str(Prestas[p]["Id"]))
 
     new_element = html.Div([
         dcc.Dropdown(
@@ -1926,6 +2167,13 @@ def DisplaySelectedPrestationInfoInFactureCreationPage(value, id,selectedprestas
 
 @app.callback(
     output = [
+        Output('API_response_fail','is_open'),
+        Output('API_response_fail','children'), 
+        Output('API_response_warning','is_open'),
+        Output('API_response_warning','children'), 
+        Output('API_response_success','is_open'),
+        Output('API_response_success','children'), 
+
         Output('FactureInfoMontantHT', 'value'),
         Output('FactureInfoMontantTTC', 'value'),
     ],
@@ -1960,13 +2208,18 @@ def ComputeTotalFacture(trigger,value, id,tva,selectedprestas):
             continue
         presta = selectedprestas[str(v)]
         print(presta)
+        print(type(presta['NHourFacturee']))
+        print( type(presta['HourPriceHT']))
+
+        if type(presta['NHourFacturee']) is str or type(presta['HourPriceHT']) is str:
+            return *ReturnFailNotif('Impossible HourPriceHT or NHourFacturee in presta is not a number !'), -1 ,-1
 
         TotalHT += presta['HourPriceHT'] * presta['NHourFacturee'] 
 
 
     TotalTTC = tvafactor * TotalHT
 
-    return TotalTTC, TotalHT
+    return *ReturnNoNotif(),TotalTTC, TotalHT
 
 
 
@@ -2096,7 +2349,7 @@ def GetFactureList(ClientId):
         )
 
         if(r['StatutDemandePaiementUrssaf'] is None) : 
-            StrOption = "Id :"+str(r['Id'])+" , Num : "+str(r['NumFacture'])
+            StrOption = str(r['NumFacture'])
             DropDownOptions.append(StrOption)
     
     if len(DropDownOptions)>0:
@@ -2132,17 +2385,24 @@ def GetFactureList(ClientId):
         ],
 
         state=[  
+            State({'type': 'facturecreationaddpresta-dynamic-dropdown', 'index': ALL}, 'value'),
+            State("CurrentPrestasSelectedToFacture", 'data'),
+
             # State('FactureInfoId','value'),  #! same order as Db
             State('FactureInfoIdClient','value'),
             State('FactureInfoNumFacture','value'),
-            State('FactureInfoDateFacture','value'),
-            State('FactureInfoDateDebutEmploi','value'),
-            State('FactureInfoDateFinEmploi','value'),
+            # State('FactureInfoDateFacture','value'),
+            # State('FactureInfoDateDebutEmploi','value'),
+            # State('FactureInfoDateFinEmploi','value'),
+            State('FactureInfoDateFacture','date'),
+            State('FactureInfoDateDebutEmploi','date'),
+            State('FactureInfoDateFinEmploi','date'),
             State('FactureInfoAcompte','value'),
             State('FactureInfoDateAcompte','value'),
             State('FactureInfoMontantTTC','value'),
             State('FactureInfoMontantHT','value'),
-            State('FactureInfoIdClientUrssaf','value'),
+
+            # State('FactureInfoIdClientUrssaf','value'),
         ],
 
         prevent_initial_call=True,
@@ -2150,41 +2410,70 @@ def GetFactureList(ClientId):
  
 
 )
-def AddFacture(trigger,*values):
-    Values = [None,None]  #Id
+def AddFacture(trigger,prestas,prestasdata,*values):
+    # Values = [None,None]  #Id
+    # query_sql = '''
 
-    query_sql = '''
+    #         INSERT INTO factures
 
-            INSERT INTO factures
+    #         values(XXXXValuesComaXXX);
 
-            values(XXXXValuesComaXXX);
+    #         '''
 
-            '''
+    # for v in values:
+    #     if v is None or v=="":
+    #         Values.append(None)
+    #     else:
+    #         Values.append('"'+str(v)+'"')
 
-    for v in values:
-        if v is None or v=="":
-            Values.append(None)
-        else:
-            Values.append('"'+str(v)+'"')
-
-    Values.append(None) #Statut demande paiement
-
-
-    for i,v in enumerate(Values) :
-        if v is None:
-            Values[i]='DEFAULT'
+    # Values.append(None) #Id Urssaf
+    # Values.append(None) #Statut demande paiement
 
 
-    SQLValues = ','.join([ v for v in Values])
+    # for i,v in enumerate(Values) :
+    #     if v is None:
+    #         Values[i]='DEFAULT'
 
-    query_sql = query_sql.replace('XXXXValuesComaXXX', SQLValues) #'""')
 
+    # SQLValues = ','.join([ v for v in Values])
+
+    # query_sql = query_sql.replace('XXXXValuesComaXXX', SQLValues) #'""')
+
+
+    Values = [None]+list(values)
+
+    query_sql =  GetQueryInsertNew("factures",*Values)
+
+    print("-----------------")
+    print("Add facture")
     print(query_sql)
-
 
     try:
 
         res = InsertAPIQuery(query_sql=query_sql)
+
+
+        FactureId = GetLastRow("factures")['Id'][0]
+
+        for p in prestas:
+            
+            query_sql = '''
+
+                UPDATE cours
+
+                set FactureId=XXXValuesFactureIdXXX
+                
+                WHERE Id= XXidXX;
+            '''
+            
+
+            query_sql = query_sql.replace('XXXValuesFactureIdXXX',str(FactureId))
+            query_sql = query_sql.replace('XXidXX',str(prestasdata[p]['Id']))
+
+            res = InsertAPIQuery(query_sql=query_sql)
+
+
+
     except mysql.connector.errors.InterfaceError :
 
         return ReturnFailNotif('Can\'t access Local Db')
@@ -2223,14 +2512,17 @@ def AddFacture(trigger,*values):
             State('FactureInfoId','value'),  #! same order as Db
             State('FactureInfoIdClient','value'),
             State('FactureInfoNumFacture','value'),
-            State('FactureInfoDateFacture','value'),
-            State('FactureInfoDateDebutEmploi','value'),
-            State('FactureInfoDateFinEmploi','value'),
+            # State('FactureInfoDateFacture','value'),
+            # State('FactureInfoDateDebutEmploi','value'),
+            # State('FactureInfoDateFinEmploi','value'),
+            State('FactureInfoDateFacture','date'),
+            State('FactureInfoDateDebutEmploi','date'),
+            State('FactureInfoDateFinEmploi','date'),
             State('FactureInfoAcompte','value'),
             State('FactureInfoDateAcompte','value'),
             State('FactureInfoMontantTTC','value'),
             State('FactureInfoMontantHT','value'),
-            State('FactureInfoIdClientUrssaf','value'),
+            # State('FactureInfoIdClientUrssaf','value'),
         ],
 
         prevent_initial_call=True,
@@ -2261,7 +2553,7 @@ def ModifFacture(trigger,id,*values):
             'FactureInfoDateAcompte',
             'FactureInfoMontantTTC',
             'FactureInfoMontantHT',
-            'FactureInfoIdClientUrssaf',
+            # 'FactureInfoIdClientUrssaf',
             ]
 
     for v in values:
@@ -2338,6 +2630,11 @@ def CreateHttpRequest(url,data):
     # req = requests.get(url)   
     hed = {'Authorization': 'Bearer ' + bearer,
             "Content-Type":"application/json"}# "4BK5WVGVqb9hER5mWNnIIgDdbcw0s_pkz5in9N4AKyE"}
+    # print(data)
+    # for k in data[0]:
+    #     print(k,data[0][k])
+    #     print(k,type(data[0][k]))
+    #     print(json.dumps(data[0][k]))
     req = requests.post(url,json=data,headers=hed)# ("Bearer","4BK5WVGVqb9hER5mWNnIIgDdbcw0s_pkz5in9N4AKyE"))
     
 
@@ -2472,6 +2769,7 @@ def SubmitClientToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenoms,civilit
                             datenaissance,paysnaissance,depnaissance,villenaissance,codevillenaissance,
                             adressnumvoie,adresslettre, adresscodevoie,adressevoie,adresscomplement,adresslieudit,adressville,adresscodeville,adresscodepostal,adresscodepays,
                             BIC,IBAN,BankTitulaire):
+# def SubmitClientToUrssaf(Trigger,*values):
 
 
     # datenaissance = datetime.strptime(datenaissance,"%Y-%m-%d")
@@ -2597,7 +2895,7 @@ def SubmitClientToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenoms,civilit
 
 
             Input('SubmitTOUrssafDemandePaiement-button', 'n_clicks') ,  
-
+            State("FactureListForUrssafDemandePaiement","value"),
             State('ClientInfoId',"value"),
             State('ClientInfoEmail',"value"),
             State('ClientInfoTel',"value"),
@@ -2638,7 +2936,7 @@ def SubmitClientToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenoms,civilit
 
 
 )
-def SubmitDemandePaiementToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenoms,civilite,
+def SubmitDemandePaiementToUrssaf(Trigger,FactureNum,clientId,email,tel,nom,nomusage,prenoms,civilite,
                             datenaissance,paysnaissance,depnaissance,villenaissance,codevillenaissance,
                             adressnumvoie,adresslettre, adresscodevoie,adressevoie,adresscomplement,adresslieudit,adressville,adresscodeville,adresscodepostal,adresscodepays,
                             BIC,IBAN,BankTitulaire):
@@ -2651,140 +2949,195 @@ def SubmitDemandePaiementToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenom
     print()
     print("------------ SubmitDemandePaiementToUrssaf")
 
-    print(clientId)
+
+
+    print(int(FactureNum))
+
+    Facture = GetFactureFromFactureNum(FactureNum)
+    if Facture.empty:
+        return ReturnFailNotif('Cant find Facture with Num '+str(FactureNum))
+
+    Facture = Facture.iloc[0]
+    clientId = Facture['IdClient']
 
     cli = GetClientFromClientId(clientId)
 
     if cli.empty:
         return ReturnFailNotif('Cant find Client with Id '+str(clientId))
 
-
     cli = cli.iloc[0]
 
     cli['DateNaissance'] = ModifyDateNaissanceForURSSAF(cli['DateNaissance'])
 
-    print(cli)
-    print(type(cli['Email']))
-
+    print(Facture)
     # return ReturnSuccessNotif('TempSuccess')
 
 
-    #! numfacture
-    #! Id Facture
     #! presta infos => list cours
     #! lier les cours à la facture !
     
-
     data =     {
-        # "civilite": str(civilite),#"\""+str(civilite)+"\"",#"\"1\"",
-        # "nomNaissance": cli['Nom'],
-        # "nomUsage": cli['NomUsage'],
-        # "prenoms": cli['Prenoms'],
         "dateNaissanceClient":  cli['DateNaissance'],
-        # "adresseMail":  "\""+cli['Email']+"\"",
-        # "numeroTelephonePortable":  str(cli['Tel']),
-        # "lieuNaissance": {
-        #     "codePaysNaissance": cli['PaysNaissance'],#"99100",
-        #     "departementNaissance": cli['DepNaissance'],#"069",
-        #     "communeNaissance": {
-        #         "codeCommune" : cli['CodeVilleNaissance'],
-        #         "libelleCommune": cli['VilleNaissance'],
-        #     }
-        # },
-        # "numeroTelephonePortable": tel,#"0605040302",
-        # "adresseMail": email,#"jeanne.durand@contact.fr",
-        # "adressePostale": {
-        #     "numeroVoie": cli['AdresseNumVoie'],
-        #     "lettreVoie": cli['AdresseLettreVoie'],
-        #     "codeTypeVoie":  cli['AdresseCodeVoie'],
-        #     "libelleVoie": cli['AdresseVoie'],
-        #     "complement": cli['AdresseComplement'],
-        #     "lieuDit": cli['AdresseLieuDit'],
-        #     "libelleCommune": cli['AdresseVille'],
-        #     "codeCommune": cli['AdresseCodeVille'],
-        #     "codePostal": cli['AdresseCodePostal'],
-        #     "codePays": cli['AdresseCodePays'],
-        # },
-        # "coordonneeBancaire": {
-        #     "bic": cli['BanqueBIC'],
-        #     "iban":cli['BanqueIBAN'],
-        #     "titulaire": cli['BanqueTitulaire'],
-        # },
         "idClient":cli['IdUrssaf'],
+        "inputPrestations": [
+        {
+            # "codeActivite": "01",
+            "codeActivite": "",
+            "codeNature": "10",
+            "quantite": 1.0,
+            "unite": "HEURE",
+            "mntUnitaireTTC": 20,
+            "mntPrestationTTC": 20,
+            "mntPrestationHT": 20,
+            "mntPrestationTVA": 0,
+            "dateDebutEmploi": "2023-02-08T00:00:00Z",
+            "dateFinEmploi": "2023-02-08T00:00:00Z",
+            "complement1": "Complément 1 ",
+            "complement2": "Complément 2 "
+        }
+        ],
+        "idTiersFacturation": Facture["IdTiersFacturation"],
+		"numFactureTiers": Facture['NumFacture'],
+		"dateFacture":  Facture['DateFacture'],
+		"dateDebutEmploi":Facture['DateDebutEmploi'],
+		"dateFinEmploi": Facture['DateFinEmploi'],
+		"mntFactureTTC": Facture['MontantTTC'],
+		"mntFactureHT": Facture['MontantHT'],
     }
 
+    if  Facture['DateAcompte'] is not None  and \
+            Facture['DateAcompte'] != "NotDefined" and \
+            Facture['Acompte'] is not None  and \
+            Facture['Acompte'] >0 : 
 
-    data.update( {
-    #         "idTiersFacturation": "1081230",
-    #         # "idClient": "11000000000104",
-    #         # "dateNaissanceClient": "1986-11-30T00:00:00Z",
-    #         # "numFactureTiers": "11000000000104",
-    #         "dateFacture": "2019-12-01T00:00:00Z",
-    #         "dateDebutEmploi": "2019-11-01T00:00:00Z",
-    #         "dateFinEmploi": "2019-11-30T00:00:00Z",
-    #         "mntAcompte": 100,
-    #         "dateVersementAcompte": "2019-11-25T00:00:00Z",
-    #         "mntFactureTTC": 2000,
-    #         "mntFactureHT": 1800,
-            "inputPrestations": [
-            {
-                # "codeActivite": "01",
-                "codeActivite": "",
-                "codeNature": "10",
-                "quantite": 1.0,
-                "unite": "HEURE",
-                "mntUnitaireTTC": 20,
-                "mntPrestationTTC": 20,
-                "mntPrestationHT": 20,
-                "mntPrestationTVA": 0,
-                "dateDebutEmploi": "2023-02-08T00:00:00Z",
-                "dateFinEmploi": "2023-02-08T00:00:00Z",
-                "complement1": "Complément 1 ",
-                "complement2": "Complément 2 "
-            }
-            ]
-        }
-    )
+        data["mntAcompte"] = Facture['Acompte'],
+        data["dateVersementAcompte"] = Facture['dateVersementAcompte'],
 
-    data.update({
-		# "idTiersFacturation": "90197663900012",#"d52274e2-af3a-4157-a4b7-3d5ac5709c19",
-		"idTiersFacturation": "menage.fr",#"d52274e2-af3a-4157-a4b7-3d5ac5709c19",
-		# "idClient": "11000000000104",
-		# "dateNaissanceClient": "1986-11-30T00:00:00Z",
-		"numFactureTiers": "11000050000114",
-		"dateFacture": "2023-02-08T00:00:00Z",
-		"dateDebutEmploi": "2023-02-08T00:00:00Z",
-		# "dateFinEmploi": "2023-01-22T00:00:00Z",
-		"dateFinEmploi": "2023-02-08T00:00:00Z",
-		# "mntAcompte": 0,
-		# "dateVersementAcompte": "2022-11-25T00:00:00Z",
-		"mntFactureTTC": 20,
-		"mntFactureHT": 20,
-		# "inputPrestations": [
-		# 	{
-		# 		"codeActivite": "01",
-		# 		# "codeActivite": "85",
-		# 		"codeNature": "ENF",
-		# 		"quantite": 1,
-		# 		"unite": "HEURE",
-		# 		"mntUnitaireTTC": 100,
-		# 		"mntPrestationTTC": 100,
-		# 		"mntPrestationHT": 100,
-		# 		"mntPrestationTVA": 0,
-		# 		# "dateDebutEmploi": "2022-11-01T00:00:00Z",
-		# 		# "dateFinEmploi": "2022-11-30T00:00:00Z",
-		# 		# "complement1": "Complement 1 ",
-		# 		# "complement2": "Complement 2 "
-		# 	}
-		# ]
-	}
-    )
+
+    for d in data:
+        if  isinstance(data[d],np.int64): 
+            data[d]=int(data[d])
+
+
+    data["dateDebutEmploi"] = data["dateDebutEmploi"]+"T00:00:00Z"
+    data["dateFinEmploi"] = data["dateFinEmploi"]+"T00:00:00Z"
+    data["dateFacture"] = data["dateFacture"]+"T00:00:00Z"
+
     data = [data]
 
-    print("uuuuuuuuuuuuuuuuuuu")
-    print(data)
-    print(json.dumps(data))
-    print("uuuuuuuuuuuuuuuuuuu")
+    # data =     {
+    #     # "civilite": str(civilite),#"\""+str(civilite)+"\"",#"\"1\"",
+    #     # "nomNaissance": cli['Nom'],
+    #     # "nomUsage": cli['NomUsage'],
+    #     # "prenoms": cli['Prenoms'],
+    #     "dateNaissanceClient":  cli['DateNaissance'],
+    #     # "adresseMail":  "\""+cli['Email']+"\"",
+    #     # "numeroTelephonePortable":  str(cli['Tel']),
+    #     # "lieuNaissance": {
+    #     #     "codePaysNaissance": cli['PaysNaissance'],#"99100",
+    #     #     "departementNaissance": cli['DepNaissance'],#"069",
+    #     #     "communeNaissance": {
+    #     #         "codeCommune" : cli['CodeVilleNaissance'],
+    #     #         "libelleCommune": cli['VilleNaissance'],
+    #     #     }
+    #     # },
+    #     # "numeroTelephonePortable": tel,#"0605040302",
+    #     # "adresseMail": email,#"jeanne.durand@contact.fr",
+    #     # "adressePostale": {
+    #     #     "numeroVoie": cli['AdresseNumVoie'],
+    #     #     "lettreVoie": cli['AdresseLettreVoie'],
+    #     #     "codeTypeVoie":  cli['AdresseCodeVoie'],
+    #     #     "libelleVoie": cli['AdresseVoie'],
+    #     #     "complement": cli['AdresseComplement'],
+    #     #     "lieuDit": cli['AdresseLieuDit'],
+    #     #     "libelleCommune": cli['AdresseVille'],
+    #     #     "codeCommune": cli['AdresseCodeVille'],
+    #     #     "codePostal": cli['AdresseCodePostal'],
+    #     #     "codePays": cli['AdresseCodePays'],
+    #     # },
+    #     # "coordonneeBancaire": {
+    #     #     "bic": cli['BanqueBIC'],
+    #     #     "iban":cli['BanqueIBAN'],
+    #     #     "titulaire": cli['BanqueTitulaire'],
+    #     # },
+    #     "idClient":cli['IdUrssaf'],
+    # }
+
+
+    # data.update( {
+    # #         "idTiersFacturation": "1081230",
+    # #         # "idClient": "11000000000104",
+    # #         # "dateNaissanceClient": "1986-11-30T00:00:00Z",
+    # #         # "numFactureTiers": "11000000000104",
+    # #         "dateFacture": "2019-12-01T00:00:00Z",
+    # #         "dateDebutEmploi": "2019-11-01T00:00:00Z",
+    # #         "dateFinEmploi": "2019-11-30T00:00:00Z",
+    # #         "mntAcompte": 100,
+    # #         "dateVersementAcompte": "2019-11-25T00:00:00Z",
+    # #         "mntFactureTTC": 2000,
+    # #         "mntFactureHT": 1800,
+    #         "inputPrestations": [
+    #         {
+    #             # "codeActivite": "01",
+    #             "codeActivite": "",
+    #             "codeNature": "10",
+    #             "quantite": 1.0,
+    #             "unite": "HEURE",
+    #             "mntUnitaireTTC": 20,
+    #             "mntPrestationTTC": 20,
+    #             "mntPrestationHT": 20,
+    #             "mntPrestationTVA": 0,
+    #             "dateDebutEmploi": "2023-02-08T00:00:00Z",
+    #             "dateFinEmploi": "2023-02-08T00:00:00Z",
+    #             "complement1": "Complément 1 ",
+    #             "complement2": "Complément 2 "
+    #         }
+    #         ]
+    #     }
+    # )
+
+    # data.update({
+	# 	# "idTiersFacturation": "90197663900012",#"d52274e2-af3a-4157-a4b7-3d5ac5709c19",
+	# 	"idTiersFacturation": "menage.fr",#"d52274e2-af3a-4157-a4b7-3d5ac5709c19",
+	# 	# "idClient": "11000000000104",
+	# 	# "dateNaissanceClient": "1986-11-30T00:00:00Z",
+	# 	"numFactureTiers": "11000050000114",
+	# 	"dateFacture": "2023-02-08T00:00:00Z",
+	# 	"dateDebutEmploi": "2023-02-08T00:00:00Z",
+	# 	# "dateFinEmploi": "2023-01-22T00:00:00Z",
+	# 	"dateFinEmploi": "2023-02-08T00:00:00Z",
+	# 	# "mntAcompte": 0,
+	# 	# "dateVersementAcompte": "2022-11-25T00:00:00Z",
+	# 	"mntFactureTTC": 20,
+	# 	"mntFactureHT": 20,
+	# 	# "inputPrestations": [
+	# 	# 	{
+	# 	# 		"codeActivite": "01",
+	# 	# 		# "codeActivite": "85",
+	# 	# 		"codeNature": "ENF",
+	# 	# 		"quantite": 1,
+	# 	# 		"unite": "HEURE",
+	# 	# 		"mntUnitaireTTC": 100,
+	# 	# 		"mntPrestationTTC": 100,
+	# 	# 		"mntPrestationHT": 100,
+	# 	# 		"mntPrestationTVA": 0,
+	# 	# 		# "dateDebutEmploi": "2022-11-01T00:00:00Z",
+	# 	# 		# "dateFinEmploi": "2022-11-30T00:00:00Z",
+	# 	# 		# "complement1": "Complement 1 ",
+	# 	# 		# "complement2": "Complement 2 "
+	# 	# 	}
+	# 	# ]
+	# }
+    # )
+    # data = [data]
+
+    # print("uuuuuuuuuuuuuuuuuuu")
+    # print(data)
+    # print(json.dumps(data))
+    # print("uuuuuuuuuuuuuuuuuuu")
+
+
+    # return ReturnSuccessNotif('Temp!')
 
 
     # req = PrepareRequest(url="https://api-edi.urssaf.fr/atp/v1/tiersPrestations/particulier",data=data)
@@ -2802,6 +3155,15 @@ def SubmitDemandePaiementToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenom
 
     if req.status_code == 200:
 
+
+
+        print(json.loads(req.text)[0])
+        
+        
+        if 'errors' in json.loads(req.text)[0]:
+            return ReturnFailNotif('Failed : '+json.dumps(json.loads(req.text)[0]['errors']))
+
+
         idUrssaf= json.loads(req.text)[0]["idDemandePaiement"]
         StatutUrssaf= json.loads(req.text)[0]["statut"]
 
@@ -2815,7 +3177,7 @@ def SubmitDemandePaiementToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenom
         
         WHERE Id= XXidXX;
         '''
-        query_sql = query_sql.replace('XXidXX', str(14)) #'""') #! id facture !!!
+        query_sql = query_sql.replace('XXidXX', str(Facture['Id'])) #'""') #! id facture !!!
         query_sql = query_sql.replace('XXXValueIdXXX','"'+str(idUrssaf)+'"') #'""')
         query_sql = query_sql.replace('XXXValueStatusXXX','"'+str(StatutUrssaf)+'"') #'""')
 

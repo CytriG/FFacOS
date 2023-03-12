@@ -188,10 +188,48 @@ def CreateTabFactureCreation(Config):
                     dcc.Input(id='FactureInfoId',className="form-control",type="text",value="-1",size="30",placeholder="FactureInfoId"),
                     dcc.Input(id='FactureInfoIdClient',className="form-control",type="text",value="",size="30",placeholder="FactureInfoIdClient"),
                     dcc.Input(id='FactureInfoNumFacture',disabled=True,className="form-control",type="text",value=Config['StartNextNumFacture'],size="30",placeholder="FactureInfoNumFacture"),
-                    dcc.Input(id='FactureInfoDateFacture',className="form-control",type="text",value="",size="30",placeholder="FactureInfoDateFacture"),
-                    dcc.Input(id='FactureInfoDateDebutEmploi',className="form-control",type="text",value="",size="30",placeholder="FactureInfoDateDebutEmploi"),
-                    dcc.Input(id='FactureInfoDateFinEmploi',className="form-control",type="text",value="",size="30",placeholder="FactureInfoDateFinEmploi"),
-                    dcc.Input(id='FactureInfoIdClientUrssaf',className="form-control",type="text",value="",size="30",placeholder="FactureInfoIdClientUrssaf"),
+                    # dcc.Input(id='FactureInfoDateFacture',className="form-control",type="text",value="",size="30",placeholder="FactureInfoDateFacture"),
+                    dbc.InputGroup([
+
+                    
+                        dbc.InputGroupText('Date Facture'),
+                        dcc.DatePickerSingle(
+                                            id='FactureInfoDateFacture',
+                                            min_date_allowed=date(1900, 1, 1),
+                                            max_date_allowed=date(2100, 1, 1),
+                                            initial_visible_month=date(2022, 1, 1),
+                                            date= today,# date(2017, 8, 25),
+                                            display_format="DD/MM/YYYY",
+                                            style={"width":"33%"}
+                                        ),
+                    ]),
+                    # dcc.Input(id='FactureInfoDateDebutEmploi',className="form-control",type="text",value="",size="30",placeholder="FactureInfoDateDebutEmploi"),
+                    dbc.InputGroup([
+                        dbc.InputGroupText('Date Début Emploi'),
+                        dcc.DatePickerSingle(
+                                            id='FactureInfoDateDebutEmploi',
+                                            min_date_allowed=date(1900, 1, 1),
+                                            max_date_allowed=date(2100, 1, 1),
+                                            initial_visible_month=date(2022, 1, 1),
+                                            date= today,# date(2017, 8, 25),
+                                            display_format="DD/MM/YYYY",
+                                            style={"width":"33%"}
+                                        ),
+                    ]),
+                    # dcc.Input(id='FactureInfoDateFinEmploi',className="form-control",type="text",value="",size="30",placeholder="FactureInfoDateFinEmploi"),
+                    dbc.InputGroup([
+                        dbc.InputGroupText('Date Fin Emploi'),
+                        dcc.DatePickerSingle(
+                                            id='FactureInfoDateFinEmploi',
+                                            min_date_allowed=date(1900, 1, 1),
+                                            max_date_allowed=date(2100, 1, 1),
+                                            initial_visible_month=date(2022, 1, 1),
+                                            date= today,# date(2017, 8, 25),
+                                            display_format="DD/MM/YYYY",
+                                            style={"width":"33%"}
+                                        ),
+                    ]),
+                    # dcc.Input(id='FactureInfoIdClientUrssaf',className="form-control",type="text",value="",size="30",placeholder="FactureInfoIdClientUrssaf"),
                     
 
                     html.Div(style={"height":"50px"}),
