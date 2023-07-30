@@ -2,3 +2,7 @@
 SaveDb
 Infos.json
 RequestToken*
+app.spec
+dist
+build
+GenerateExe

@@ -10,3 +10,4 @@ matplotlib
 mysql-connector-python
 pandas
 numpy
+pyinstaller

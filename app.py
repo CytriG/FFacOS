@@ -298,9 +298,6 @@ except FileNotFoundError :
 
 
 
-print(Config)
-exit()
-
 
 try :
 
@@ -3422,6 +3419,6 @@ if __name__=="__main__":
 
  
 
- 
+    input("Press enter to proceed...")
 
  
