@@ -43,6 +43,7 @@ def CreateLayoutTab_Factures(Config):
 
                         dbc.Row([
 
+
                             dbc.Col([
 
                                 html.Div(
@@ -162,6 +163,9 @@ def CreateTabFactureList():
                 selected_className='tab-pane fade active show',
 
                 children=[
+                    
+                    html.Button("Refresh list",id="RefreshFactureList-button",n_clicks=0,className='btn btn-lg btn-info',style={"min-height":"20px","max-width":"300px"}),
+                    html.Button("Get Urssaf status",id="GetDemandePaiementStatusFromUrssaf-button",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","max-width":"300px"}),
 
                     html.Div(id="FactureList")
 
@@ -731,6 +735,16 @@ def CoursModif():
 
                                     html.Label('Price HT per hour:'),
                                     dcc.Input(id='CoursHourPriceHT',className="form-control",type="text",value="",size="30",placeholder="HourPriceHT"),
+                                    
+                                    
+                                    html.Div(style={"height":"50px"}),
+                                    dbc.InputGroup([
+                                        dbc.InputGroupText("Frais de déplacement HT"),
+                                        dbc.Input(id='CoursFraisDeplacementHT',className="form-control",type="text",value="",size="30",placeholder="Frais de déplacement HT"),
+
+                                    ]),
+
+
                                     html.Div(style={"height":"50px"}),
 
                                     html.Div(style={"display":"flex"},children=[
@@ -738,7 +752,9 @@ def CoursModif():
                                         html.Button("Modify",id="ModifCoursButton",n_clicks=0,className='btn btn-lg btn-warning',style={"min-height":"20px","width":"25%"}),
                                         html.Button("Delete",id="DeleteCoursButton",n_clicks=0,className='btn btn-lg btn-danger',style={"min-height":"20px","width":"25%"}),
                                         html.Div(style={"height":"5px"}),
-                                    ]),                            
+                                    ]),  
+
+
                             ])
 
 def CreateTabCoursCreation():
@@ -873,15 +889,42 @@ def CreateLayoutTab_Config(Config):
                             html.Div(className='card-body',
                             children=[
 
-                            html.Div(style={"height":"25px"}),
+                                html.Div(style={"height":"25px"}),
 
-                            html.Label("Next Facture Number"),
-                            dcc.Input(id='NextNumFacture',className="form-control",type="text",value=Config['StartNextNumFacture'],size="30",placeholder="NumFacture to be created"),
-                            html.Div(style={"height":"15px"}),
+                                html.Label("Next Facture Number"),
+                                dcc.Input(id='NextNumFacture',className="form-control",type="text",value=Config['StartNextNumFacture'],size="30",placeholder="NumFacture to be created"),
+                                html.Div(style={"height":"15px"}),
 
-                            html.Label("TVA in %"),
-                            dcc.Input(id='TVAvalue',className="form-control",type="text",value=0,size="30",placeholder="TVA to be applied"),
-                            html.Div(style={"height":"15px"}),
+                                html.Label("TVA in %"),
+                                dcc.Input(id='TVAvalue',className="form-control",type="text",value=0,size="30",placeholder="TVA to be applied"),
+                                html.Div(style={"height":"15px"}),
+                                ])
+                        ]),
+                    html.Div(style={"height":"30px"}),
+
+                    html.Div(
+                        id='ConfigUrssaf',
+                        className='card border-primary mb-3',
+                        style={"width":"80%"},
+                        children=[
+                            html.Div(className='card-header',
+                            children=[
+                                html.Div('Config Urssaf')
+                            ]),
+                            html.Div(className='card-body',
+                            children=[
+                                html.Label("Code activité"),
+                                dcc.Input(id='CodeActiviteUrssaf',className="form-control",disabled=True,type="text",value=Config['CodeActiviteUrssaf'],size="30",placeholder=""),
+                                html.Div(style={"height":"15px"}),
+
+                                html.Label("Code nature prestation"),
+                                dcc.Input(id='CodeNatureUrssaf',className="form-control",disabled=True,type="text",value=Config['CodeNatureUrssaf'],size="30",placeholder=""),
+                                html.Div(style={"height":"15px"}),
+
+                                html.Label("Numéro SAP"),
+                                dcc.Input(id='NumeroSAP',className="form-control",disabled=True,type="text",value=Config['NumeroSAP'],size="30",placeholder=""),
+                                html.Div(style={"height":"15px"}),
+
 
                             ]
                             )

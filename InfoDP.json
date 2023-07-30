@@ -1,0 +1,86 @@
+[
+    {
+        "code" : 10,
+        "Statut" :"Intégrée",
+        "Description" : "La demande de paiement a été reçue et a passé les différents contrôles de cohérence ",
+        "StatuType" : "info" 
+    },
+    {
+        "code" : 20,
+        "Statut" :"En attente de validation",
+        "Description" : "Le particulier a été prévenu que la demande de paiement est à valider/rejeter par lui",
+        "StatuType" : "info" 
+
+    },
+    {
+        "code" : 30,
+        "Statut" :"Validée",
+        "Description" : "La demande de paiement a été validée par le particulier et le circuit de prélèvement est lancé",
+        "StatuType" : "info" 
+
+    },
+    {
+        "code" : 40,
+        "Statut" :"Refusée",
+        "Description" : "La demande de paiement est refusée par le particulier : il a renseigné son rejet et un code motif associé",
+        "StatuType" : "danger" 
+
+    },
+    {
+        "code" : 50,
+        "Statut" :"Prélevée",
+        "Description" : "Le prélèvement du reste à charge de la demande de paiement adressée au particulier est lancé (fichier de prélèvement ok)",
+        "StatuType" : "info" 
+
+    },
+    {
+        "code" : 60,
+        "Statut" :"En refus de prélèvement",
+        "Description" : "Le prélèvement associé à la demande de paiement est revenu en erreur. La demande de paiement est en impayé.",
+        "StatuType" : "danger" 
+
+        },
+    {
+        "code" : 70,
+        "Statut" :"Payée",
+        "Description" : "Le prélèvement du reste à charge de la demande de paiement adressée au particulier est lancé (fichier de prélèvement ok)",
+        "StatuType" : "success" 
+
+    },
+    {
+        "code" : 110,
+        "Statut" :"Annulée",
+        "Description" : "La demande de paiement a été annulée suite à une demande motivée du prestataire.",
+        "StatuType" : "danger" 
+
+    },    
+    {
+        "code" : 111,
+        "Statut" :"Annulée après impayé",
+        "Description" : "La demande de paiement a été annulée après impayé du particulier.",
+        "StatuType" : "danger" 
+
+    },    
+    {
+        "code" : 120,
+        "Statut" :"Recouvrée",
+        "Description" : "La demande de paiement en impayé a été recouvrée par le prestataire",
+        "StatuType" : "danger" 
+
+    },    
+    {
+        "code" : 112,
+        "Statut" :"Annulée après recouvrement",
+        "Description" : "La demande de paiement a été annulée après recouvrement par le prestataire.",
+        "StatuType" : "danger" 
+
+    },
+    {
+        "code":-999,
+        "Statut" :"FFacOS error",
+        "Description" : "Le statut n'a pu être obtenu ! Essayer ultérieurement",
+        "StatuType" : "danger" 
+    }
+    
+
+]

@@ -75,8 +75,6 @@ def ReadAPIQuery(query_sql):
     
     result_sql = pd.read_sql_query(query_sql, mydb)
 
-    print(result_sql)
-
     mydb.close()
 
     return result_sql
@@ -275,10 +273,21 @@ print('Config:')
 
 try :
 
-    with open(package_directory+'/Infos.json','r') as f:
+
+    with open(package_directory+'/DefaultInfos.json','r') as f:
 
         Config  = json.load(f)
 
+    try:
+        with open(package_directory+'/Infos.json','r') as f:
+
+            
+            ConfigNew  = json.load(f)
+    
+        Config.update(ConfigNew)
+    
+    except FileNotFoundError:
+        pass
 
 
 except FileNotFoundError :
@@ -287,6 +296,10 @@ except FileNotFoundError :
 
     exit()
 
+
+
+print(Config)
+exit()
 
 
 try :
@@ -332,30 +345,40 @@ print('FFacOS is running')
 
  
 
-def ReturnFailNotif(Message="Oops"):
-    return ReturnNotif(Type="Fail",Message=Message)
-def ReturnWarningNotif(Message="Oops"):
-    return ReturnNotif(Type="Warning",Message=Message)
-def ReturnSuccessNotif(Message="Done"):
-    return ReturnNotif(Type="Success",Message=Message)
-def ReturnNoNotif(Message="Done"):
-    return ReturnNotif(Type="No",Message=Message)
+def ReturnFailNotif(Message="Oops",Duration=None):
+    return ReturnNotif(Type="Fail",Message=Message,Duration=Duration)
+def ReturnWarningNotif(Message="Oops",Duration=None):
+    return ReturnNotif(Type="Warning",Message=Message,Duration=Duration)
+def ReturnSuccessNotif(Message="Done",Duration=None):
+    return ReturnNotif(Type="Success",Message=Message,Duration=Duration)
+def ReturnNoNotif(Message="Done",Duration=None):
+    return ReturnNotif(Type="No",Message=Message,Duration=Duration)
  
-def ReturnNotif(Type="Fail",Message="Error"):
+def ReturnNotif(Type="Fail",Message="Error",Duration=None):
+    returnlist = []
 
     if Type=="Success":
-        return False, "" , False, '', True, Message
+        returnlist = [False, "" , False, '', True, Message]
 
     if Type=="Warning":
-        return False, "" ,  True, Message,False, '',
+        returnlist =  [False, "" ,  True, Message,False, '']
 
     if Type=="Fail":
-        return  True, Message, False, '', False, "" , 
+        returnlist =   [True, Message, False, '', False, ""]  
 
     if Type=="No":
-        return  False, "", False, '', False, "" , 
+        returnlist =  [False, "", False, '', False, "" ]
+
+    if not Duration is None:
 
 
+        returnlist.append(Duration)
+        returnlist.append(Duration)
+        returnlist.append(Duration)
+
+
+
+    return returnlist
  
 
  
@@ -1524,6 +1547,30 @@ def GetCoursFromStudentId(StudentId):
     return res
 
 
+def GetCoursFromFactureId(FactureId):
+
+    query_sql = '''
+
+                SELECT *
+
+                FROM cours
+                WHERE FactureId=XXIdXX   order by Date Desc;
+
+                '''
+
+    # query_sql = query_sql.replace('XXXcolsXXX', 'Id, Date, StudentId')#','.join(['email','long_id']))
+    query_sql = query_sql.replace('XXIdXX', str(FactureId))#','.join(['email','long_id']))
+
+    print()
+    print("-- GetCours From FactureId")
+    print(query_sql)
+
+    res = ReadAPIQuery(query_sql=query_sql)
+
+    return res
+
+
+
 
 @app.callback(
 
@@ -1720,6 +1767,7 @@ def ModifyCoursValuesFromInputs(Values,values):
             Values.append(str(v))
 
     Values.append(None) #FactureId
+    Values[10] = Values[9] 
     Values[9] = Values[8] 
     Values[8] = None      #inverse facture id and HourPrice
 
@@ -1759,6 +1807,7 @@ def ModifyCoursValuesFromInputs(Values,values):
             State('CoursStudentId','value'),  #! same order as Db
             State('CoursDate','date'),  
             State('CoursHourPriceHT','value'),
+            State('CoursFraisDeplacementHT','value'),
         ],
 
         prevent_initial_call=True,
@@ -2214,7 +2263,9 @@ def ComputeTotalFacture(trigger,value, id,tva,selectedprestas):
         if type(presta['NHourFacturee']) is str or type(presta['HourPriceHT']) is str:
             return *ReturnFailNotif('Impossible HourPriceHT or NHourFacturee in presta is not a number !'), -1 ,-1
 
-        TotalHT += presta['HourPriceHT'] * presta['NHourFacturee'] 
+        TotalHT += presta['HourPriceHT'] * presta['NHourFacturee']  
+        if 'FraisDeplacement' in presta and not presta['FraisDeplacement'] is None and presta['FraisDeplacement'] != "None" and presta['FraisDeplacement'] != "":
+              TotalHT += float(presta['FraisDeplacement'])
 
 
     TotalTTC = tvafactor * TotalHT
@@ -2284,7 +2335,9 @@ def GetClientsForFacturation(trigger,Email=None):
             ],
 
         inputs=[   
-            Input('CurrentClientId-fac', 'value')   
+            Input('CurrentClientId-fac', 'value')  ,
+            Input('RefreshFactureList-button', 'n_clicks')  ,
+             
         ],
 
         state=[  
@@ -2296,7 +2349,7 @@ def GetClientsForFacturation(trigger,Email=None):
  
 
 )
-def GetFactureList(ClientId):
+def GetFactureList(ClientId,trigger2):
 
     ClientInfo = []#["oui","oui","oui"]#str(np.ones(NumColClientInfo))
 
@@ -2327,16 +2380,53 @@ def GetFactureList(ClientId):
 
         )
 
+    with open('InfoDP.json' ,'r', encoding='utf-8') as f:     
+        DPinfos = json.load(f)
 
+    print(DPinfos)
+
+    MessageNoDemandeUrssaf = "Pas de demande URSSAF"
     for i,r in res.iterrows():
         
         FactureInfos=[]
         for c in list(res.columns):
+
+            classname=None
+            tooltip = None
+            if str(c)=="StatutDemandePaiementUrssaf":
+
+                if r[c] is None:
+                    r[c] = MessageNoDemandeUrssaf
+                    classname="text-warning"
+                else:
+                    for DPinfo in DPinfos:
+                        if str(r[c]) == str(DPinfo["code"]):
+                            r[c] = DPinfo["Statut"]
+                            classname="text-"+str(DPinfo["StatuType"])
+                            tooltip = str(DPinfo["Description"])
+
+
+
+
             FactureInfos.append(
                 html.Div(
                     str(c)+" : "+str(r[c]),
+                    id=str(i)+"_"+str(r['Id'])+str(c),
+                    className=classname,
                 )
             )  
+
+            if tooltip is not None :
+
+
+                FactureInfos.append(
+                    dbc.Tooltip(children=[tooltip],
+                        placement='left',
+  
+                        target=str(i)+"_"+str(r['Id'])+str(c)
+                    )
+                )
+
 
 
         Children.append(
@@ -2348,7 +2438,7 @@ def GetFactureList(ClientId):
 
         )
 
-        if(r['StatutDemandePaiementUrssaf'] is None) : 
+        if(r['StatutDemandePaiementUrssaf'] is None or r['StatutDemandePaiementUrssaf']==MessageNoDemandeUrssaf) : 
             StrOption = str(r['NumFacture'])
             DropDownOptions.append(StrOption)
     
@@ -2357,6 +2447,8 @@ def GetFactureList(ClientId):
     else:
         DropDownValue = None
 
+    print()
+    print(DropDownOptions)
     print(Children)
  
     return Children,ClientId,DropDownOptions,DropDownValue,[],0
@@ -2881,6 +2973,50 @@ def SubmitClientToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenoms,civilit
 
 
 
+def UpdateDemandePaiementInfoInDb(FactureId,IdUrsaaf,StatutDemandePaiment):
+
+        if IdUrsaaf is None:
+            query_sql = '''
+
+            UPDATE factures
+
+            set StatutDemandePaiementUrssaf=XXXValueStatusXXX
+            
+            WHERE Id= XXidXX;
+            '''
+
+        else:
+            query_sql = '''
+
+            UPDATE factures
+
+            set IdUrssaf=XXXValueIdXXX,  StatutDemandePaiementUrssaf=XXXValueStatusXXX
+            
+            WHERE Id= XXidXX;
+            '''
+
+
+        query_sql = query_sql.replace('XXidXX', str(FactureId)) #'""') #! id facture !!!
+        query_sql = query_sql.replace('XXXValueIdXXX','"'+str(IdUrsaaf)+'"') #'""')
+        query_sql = query_sql.replace('XXXValueStatusXXX','"'+str(StatutDemandePaiment)+'"') #'""')
+
+        print(query_sql)
+
+        try:
+
+            res = InsertAPIQuery(query_sql=query_sql)
+
+            return ReturnSuccessNotif('Done!')
+
+        except mysql.connector.errors.InterfaceError :
+
+            return ReturnFailNotif('Could not update Db with Urssaf Id : '+str(IdUrsaaf))
+    
+
+
+
+
+
 @app.callback(
 
     output=[
@@ -2897,38 +3033,12 @@ def SubmitClientToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenoms,civilit
             Input('SubmitTOUrssafDemandePaiement-button', 'n_clicks') ,  
             State("FactureListForUrssafDemandePaiement","value"),
             State('ClientInfoId',"value"),
-            State('ClientInfoEmail',"value"),
-            State('ClientInfoTel',"value"),
-
-            State('ClientInfoNom',"value"),
-            State('ClientInfoNomUsage',"value"),
-            State('ClientInfoPrenoms',"value"),
-            State('ClientInfoCivilite',"value"),
-
-            State('ClientInfoDateNaissance',"date"),
-            State('ClientInfoPaysNaissance',"value"),
-            State('ClientInfoDepNaissance',"value"),
-            State('ClientInfoVilleNaissance',"value"),
-            State('ClientInfoCodeVilleNaissance',"value"),
-
-
-
-            State('ClientAdresseNumVoie',"value"),
-            State('ClientAdresseLettreVoie',"value"),
-            State('ClientAdresseCodeVoie',"value"),
-            State('ClientAdresseVoie',"value"),
-            State('ClientAdresseComplement',"value"),
-            State('ClientAdresseLieuDit',"value"),
-            State('ClientAdresseVille',"value"),
-            State('ClientAdresseCodeVille',"value"),
-            State('ClientAdresseCodePostal',"value"),
-            State('ClientAdresseCodePays',"value"),
-
-
-
-            State('ClientBIC',"value"),
-            State('ClientIBAN',"value"),
-            State('ClientBanqueTitulaire',"value"),
+            
+            
+            State('TVAvalue',"value"),
+            State('CodeActiviteUrssaf',"value"),
+            State('CodeNatureUrssaf',"value"),
+            State('NumeroSAP',"value"),
 
 
     ],
@@ -2936,14 +3046,9 @@ def SubmitClientToUrssaf(Trigger,clientId,email,tel,nom,nomusage,prenoms,civilit
 
 
 )
-def SubmitDemandePaiementToUrssaf(Trigger,FactureNum,clientId,email,tel,nom,nomusage,prenoms,civilite,
-                            datenaissance,paysnaissance,depnaissance,villenaissance,codevillenaissance,
-                            adressnumvoie,adresslettre, adresscodevoie,adressevoie,adresscomplement,adresslieudit,adressville,adresscodeville,adresscodepostal,adresscodepays,
-                            BIC,IBAN,BankTitulaire):
+def SubmitDemandePaiementToUrssaf(Trigger,FactureNum,clientId,TVA,
+                            codeactiviteUrssaf,codeNatureUrssaf,NumeroSAP):
 
-
-    datenaissance = datetime.strptime(datenaissance,"%Y-%m-%d")
-    datenaissance = datenaissance.isoformat()+'.000Z' 
 
     print()
     print()
@@ -2973,29 +3078,103 @@ def SubmitDemandePaiementToUrssaf(Trigger,FactureNum,clientId,email,tel,nom,nomu
     # return ReturnSuccessNotif('TempSuccess')
 
 
-    #! presta infos => list cours
-    #! lier les cours à la facture !
+
+    cours = GetCoursFromFactureId(FactureId=str(Facture['Id']))
+
+    print(cours)
+
+    inputprestation = []
+
+
+    print(cours)
+
+    IdsPresta=[]
+
+    for icour,cour in cours.iterrows():
+
+        cour=cour.to_dict()
+
+        if 'TVA' not in cour or cour['TVA'] is None:
+            cour["TVA"]=0
+
+        if cour['Id'] in IdsPresta:
+            return ReturnFailNotif("Facture have 2 prestation with same id !!  Bad facture !!")
+
+
+        inputprestation.append(
+            {
+                "codeActivite": codeactiviteUrssaf,
+                "codeNature": codeNatureUrssaf,
+                "quantite": cour['NHourFacturee'],
+                "unite": "HEURE",
+                "mntUnitaireTTC": cour["HourPriceHT"]*(1+TVA/100),
+                "mntPrestationTTC": cour['NHourFacturee']* cour["HourPriceHT"]*(1+TVA/100),
+                "mntPrestationHT": cour["HourPriceHT"]*cour['NHourFacturee'],
+                "mntPrestationTVA": (TVA/100)*cour["HourPriceHT"]*cour['NHourFacturee'],
+                "dateDebutEmploi": cour["Date"]+"T00:00:00Z",
+                "dateFinEmploi": cour["Date"]+"T00:00:00Z",
+                "complement1": "",
+                "complement2": NumeroSAP
+            }
+        )
+
+        IdsPresta.append(cour['Id'])
+
+        if not cour["FraisDeplacement"] is None and cour["FraisDeplacement"] !="None" and cour["FraisDeplacement"] !="" and float(cour["FraisDeplacement"]) >0:
+            inputprestation.append(
+                {
+                    "codeActivite": codeactiviteUrssaf,
+                    "codeNature": codeNatureUrssaf,
+                    "quantite": 1,
+                    "unite": "FORFAIT",
+                    "mntUnitaireTTC": cour["FraisDeplacement"]*(1+TVA/100),
+                    "mntPrestationTTC": 1 *  cour["FraisDeplacement"]*(1+TVA/100),
+                    "mntPrestationHT": 1 * cour["FraisDeplacement"],
+                    "mntPrestationTVA": 1 * (TVA/100)*cour["FraisDeplacement"],
+                    "dateDebutEmploi": cour["Date"]+"T00:00:00Z",
+                    "dateFinEmploi": cour["Date"]+"T00:00:00Z",
+                    "complement1": "",
+                    "complement2": NumeroSAP
+                }
+            )
+
+
+    counttotal = 0
+    for ip in inputprestation:
+        counttotal += ip['mntPrestationTTC']
+
+    print("using following prestations :")
+    print(inputprestation)
+    print('Total TTC for inputprestation=',counttotal)
+    print('Total TTC for facture=',Facture['MontantTTC'])
+
+    if float(counttotal) != float(Facture['MontantTTC']):
+        return ReturnFailNotif('Failed : Prestations and Facture have different total TTC')
+
     
+
+
     data =     {
         "dateNaissanceClient":  cli['DateNaissance'],
         "idClient":cli['IdUrssaf'],
-        "inputPrestations": [
-        {
-            # "codeActivite": "01",
-            "codeActivite": "",
-            "codeNature": "10",
-            "quantite": 1.0,
-            "unite": "HEURE",
-            "mntUnitaireTTC": 20,
-            "mntPrestationTTC": 20,
-            "mntPrestationHT": 20,
-            "mntPrestationTVA": 0,
-            "dateDebutEmploi": "2023-02-08T00:00:00Z",
-            "dateFinEmploi": "2023-02-08T00:00:00Z",
-            "complement1": "Complément 1 ",
-            "complement2": "Complément 2 "
-        }
-        ],
+        "inputPrestations": inputprestation,
+        # [
+        # {
+        #     # "codeActivite": "01",
+        #     "codeActivite": "",
+        #     "codeNature": "10",
+        #     "quantite": 1.0,
+        #     "unite": "HEURE",
+        #     "mntUnitaireTTC": 20,
+        #     "mntPrestationTTC": 20,
+        #     "mntPrestationHT": 20,
+        #     "mntPrestationTVA": 0,
+        #     "dateDebutEmploi": "2023-02-08T00:00:00Z",
+        #     "dateFinEmploi": "2023-02-08T00:00:00Z",
+        #     "complement1": "Complément 1 ",
+        #     "complement2": "Complément 2 "
+        # }
+        # ],
         "idTiersFacturation": Facture["IdTiersFacturation"],
 		"numFactureTiers": Facture['NumFacture'],
 		"dateFacture":  Facture['DateFacture'],
@@ -3025,125 +3204,7 @@ def SubmitDemandePaiementToUrssaf(Trigger,FactureNum,clientId,email,tel,nom,nomu
 
     data = [data]
 
-    # data =     {
-    #     # "civilite": str(civilite),#"\""+str(civilite)+"\"",#"\"1\"",
-    #     # "nomNaissance": cli['Nom'],
-    #     # "nomUsage": cli['NomUsage'],
-    #     # "prenoms": cli['Prenoms'],
-    #     "dateNaissanceClient":  cli['DateNaissance'],
-    #     # "adresseMail":  "\""+cli['Email']+"\"",
-    #     # "numeroTelephonePortable":  str(cli['Tel']),
-    #     # "lieuNaissance": {
-    #     #     "codePaysNaissance": cli['PaysNaissance'],#"99100",
-    #     #     "departementNaissance": cli['DepNaissance'],#"069",
-    #     #     "communeNaissance": {
-    #     #         "codeCommune" : cli['CodeVilleNaissance'],
-    #     #         "libelleCommune": cli['VilleNaissance'],
-    #     #     }
-    #     # },
-    #     # "numeroTelephonePortable": tel,#"0605040302",
-    #     # "adresseMail": email,#"jeanne.durand@contact.fr",
-    #     # "adressePostale": {
-    #     #     "numeroVoie": cli['AdresseNumVoie'],
-    #     #     "lettreVoie": cli['AdresseLettreVoie'],
-    #     #     "codeTypeVoie":  cli['AdresseCodeVoie'],
-    #     #     "libelleVoie": cli['AdresseVoie'],
-    #     #     "complement": cli['AdresseComplement'],
-    #     #     "lieuDit": cli['AdresseLieuDit'],
-    #     #     "libelleCommune": cli['AdresseVille'],
-    #     #     "codeCommune": cli['AdresseCodeVille'],
-    #     #     "codePostal": cli['AdresseCodePostal'],
-    #     #     "codePays": cli['AdresseCodePays'],
-    #     # },
-    #     # "coordonneeBancaire": {
-    #     #     "bic": cli['BanqueBIC'],
-    #     #     "iban":cli['BanqueIBAN'],
-    #     #     "titulaire": cli['BanqueTitulaire'],
-    #     # },
-    #     "idClient":cli['IdUrssaf'],
-    # }
-
-
-    # data.update( {
-    # #         "idTiersFacturation": "1081230",
-    # #         # "idClient": "11000000000104",
-    # #         # "dateNaissanceClient": "1986-11-30T00:00:00Z",
-    # #         # "numFactureTiers": "11000000000104",
-    # #         "dateFacture": "2019-12-01T00:00:00Z",
-    # #         "dateDebutEmploi": "2019-11-01T00:00:00Z",
-    # #         "dateFinEmploi": "2019-11-30T00:00:00Z",
-    # #         "mntAcompte": 100,
-    # #         "dateVersementAcompte": "2019-11-25T00:00:00Z",
-    # #         "mntFactureTTC": 2000,
-    # #         "mntFactureHT": 1800,
-    #         "inputPrestations": [
-    #         {
-    #             # "codeActivite": "01",
-    #             "codeActivite": "",
-    #             "codeNature": "10",
-    #             "quantite": 1.0,
-    #             "unite": "HEURE",
-    #             "mntUnitaireTTC": 20,
-    #             "mntPrestationTTC": 20,
-    #             "mntPrestationHT": 20,
-    #             "mntPrestationTVA": 0,
-    #             "dateDebutEmploi": "2023-02-08T00:00:00Z",
-    #             "dateFinEmploi": "2023-02-08T00:00:00Z",
-    #             "complement1": "Complément 1 ",
-    #             "complement2": "Complément 2 "
-    #         }
-    #         ]
-    #     }
-    # )
-
-    # data.update({
-	# 	# "idTiersFacturation": "90197663900012",#"d52274e2-af3a-4157-a4b7-3d5ac5709c19",
-	# 	"idTiersFacturation": "menage.fr",#"d52274e2-af3a-4157-a4b7-3d5ac5709c19",
-	# 	# "idClient": "11000000000104",
-	# 	# "dateNaissanceClient": "1986-11-30T00:00:00Z",
-	# 	"numFactureTiers": "11000050000114",
-	# 	"dateFacture": "2023-02-08T00:00:00Z",
-	# 	"dateDebutEmploi": "2023-02-08T00:00:00Z",
-	# 	# "dateFinEmploi": "2023-01-22T00:00:00Z",
-	# 	"dateFinEmploi": "2023-02-08T00:00:00Z",
-	# 	# "mntAcompte": 0,
-	# 	# "dateVersementAcompte": "2022-11-25T00:00:00Z",
-	# 	"mntFactureTTC": 20,
-	# 	"mntFactureHT": 20,
-	# 	# "inputPrestations": [
-	# 	# 	{
-	# 	# 		"codeActivite": "01",
-	# 	# 		# "codeActivite": "85",
-	# 	# 		"codeNature": "ENF",
-	# 	# 		"quantite": 1,
-	# 	# 		"unite": "HEURE",
-	# 	# 		"mntUnitaireTTC": 100,
-	# 	# 		"mntPrestationTTC": 100,
-	# 	# 		"mntPrestationHT": 100,
-	# 	# 		"mntPrestationTVA": 0,
-	# 	# 		# "dateDebutEmploi": "2022-11-01T00:00:00Z",
-	# 	# 		# "dateFinEmploi": "2022-11-30T00:00:00Z",
-	# 	# 		# "complement1": "Complement 1 ",
-	# 	# 		# "complement2": "Complement 2 "
-	# 	# 	}
-	# 	# ]
-	# }
-    # )
-    # data = [data]
-
-    # print("uuuuuuuuuuuuuuuuuuu")
-    # print(data)
-    # print(json.dumps(data))
-    # print("uuuuuuuuuuuuuuuuuuu")
-
-
-    # return ReturnSuccessNotif('Temp!')
-
-
-    # req = PrepareRequest(url="https://api-edi.urssaf.fr/atp/v1/tiersPrestations/particulier",data=data)
-
-
-    # req = CreateHttpRequest(url="https://api-edi.urssaf.fr/atp/v1/tiersPrestations/particulier",data=data)
+  
     req = CreateHttpRequest(url="https://api-edi.urssaf.fr/atp/v1/tiersPrestations/demandePaiement",data=data)
 
 
@@ -3154,8 +3215,6 @@ def SubmitDemandePaiementToUrssaf(Trigger,FactureNum,clientId,email,tel,nom,nomu
 
 
     if req.status_code == 200:
-
-
 
         print(json.loads(req.text)[0])
         
@@ -3168,30 +3227,33 @@ def SubmitDemandePaiementToUrssaf(Trigger,FactureNum,clientId,email,tel,nom,nomu
         StatutUrssaf= json.loads(req.text)[0]["statut"]
 
 
-        print(idUrssaf)
-        query_sql = '''
+        return UpdateDemandePaiementInfoInDb(str(Facture['Id']),str(idUrssaf),str(StatutUrssaf))
 
-        UPDATE factures
 
-        set IdUrssaf=XXXValueIdXXX,  StatutDemandePaiementUrssaf=XXXValueStatusXXX
+        # print(idUrssaf)
+        # query_sql = '''
+
+        # UPDATE factures
+
+        # set IdUrssaf=XXXValueIdXXX,  StatutDemandePaiementUrssaf=XXXValueStatusXXX
         
-        WHERE Id= XXidXX;
-        '''
-        query_sql = query_sql.replace('XXidXX', str(Facture['Id'])) #'""') #! id facture !!!
-        query_sql = query_sql.replace('XXXValueIdXXX','"'+str(idUrssaf)+'"') #'""')
-        query_sql = query_sql.replace('XXXValueStatusXXX','"'+str(StatutUrssaf)+'"') #'""')
+        # WHERE Id= XXidXX;
+        # '''
+        # query_sql = query_sql.replace('XXidXX', str(Facture['Id'])) #'""') #! id facture !!!
+        # query_sql = query_sql.replace('XXXValueIdXXX','"'+str(idUrssaf)+'"') #'""')
+        # query_sql = query_sql.replace('XXXValueStatusXXX','"'+str(StatutUrssaf)+'"') #'""')
 
-        print(query_sql)
+        # print(query_sql)
 
-        try:
+        # try:
 
-            res = InsertAPIQuery(query_sql=query_sql)
+        #     res = InsertAPIQuery(query_sql=query_sql)
 
-            return ReturnSuccessNotif('Done!')
+        #     return ReturnSuccessNotif('Done!')
 
-        except mysql.connector.errors.InterfaceError :
+        # except mysql.connector.errors.InterfaceError :
 
-            return ReturnFailNotif('Could not update Db with Urssaf Id : '+str(idUrssaf))
+        #     return ReturnFailNotif('Could not update Db with Urssaf Id : '+str(idUrssaf))
     
     elif req.status_code == 400:
 
@@ -3213,6 +3275,137 @@ def SubmitDemandePaiementToUrssaf(Trigger,FactureNum,clientId,email,tel,nom,nomu
 
         return ReturnFailNotif('Failed request to API Urssaf : '+str(req.status_code))
 
+
+
+
+
+
+@app.callback(
+
+    output=[
+        Output('API_response_fail','is_open'),
+        Output('API_response_fail','children'), 
+        Output('API_response_warning','is_open'),
+        Output('API_response_warning','children'), 
+        Output('API_response_success','is_open'),
+        Output('API_response_success','children'), 
+
+        Output('API_response_fail','duration'), 
+        Output('API_response_warning','duration'), 
+        Output('API_response_success','duration'), 
+    ],
+    inputs = [
+
+
+            Input('GetDemandePaiementStatusFromUrssaf-button', 'n_clicks') ,  
+            State('CurrentClientId-fac', 'value')   
+
+    ],
+    prevent_initial_call = True
+
+
+)
+def GetDemandePaiementStatusFromUrssaf(trigger,ClientId):
+
+    if ClientId <0 :
+        return ReturnWarningNotif('Select client !',Duration=4000)
+
+    print(ClientId)
+
+
+    query_sql = '''
+
+            SELECT *
+
+            FROM factures WHERE IdClient=XXXIdxXX order by NumFacture DESC;
+
+            '''
+
+
+    query_sql = query_sql.replace('XXXIdxXX', str(ClientId))#','.join(['email','long_id']))
+
+    print()
+    print("-- GetFactureList from Client Id for demande paiement statut update")
+
+
+    res = ReadAPIQuery(query_sql=query_sql)
+
+
+    print(res)
+
+    res = res[res['IdUrssaf'].notna()]
+
+    print(res)
+
+
+    CheckErrors = []
+
+
+
+    if res.empty :
+        return ReturnFailNotif('No facture found !',Duration=4000)
+
+
+
+    for i,r in res.iterrows():
+
+
+
+        print(r)
+        print(Config)
+
+        if int(r["StatutDemandePaiementUrssaf"]) in Config['StatutDemandePaiementUrssaf_ToCheck']:
+
+
+            data =     {
+                "idDemandePaiements":  [r['IdUrssaf']],
+            }
+
+
+            req = CreateHttpRequest(url="https://api-edi.urssaf.fr/atp/v1/tiersPrestations/demandePaiement/rechercher",data=data)
+
+
+            print("Req response")
+            print(req.text)
+
+            if req.status_code == 200:
+
+                # print(json.loads(req.text))
+                
+                
+                if 'errors' in json.loads(req.text):
+                    return ReturnFailNotif('Failed : '+json.dumps(json.loads(req.text)[0]['errors']))
+
+
+                # idUrssaf= json.loads(req.text)[0]["idDemandePaiement"]
+                StatutUrssaf= int(json.loads(req.text)["infoDemandePaiements"][0]["statut"]['code'])
+
+
+                _, _, _ ,_,success,_ = UpdateDemandePaiementInfoInDb(str(r['Id']),None,str(StatutUrssaf))
+                
+                print('Facture',r['NumFacture'],'has status',str(StatutUrssaf))
+
+            else  : 
+                      
+                CheckErrors.append(
+                    html.Div("Get Status for facture "+r['NumFacture']+" with UrssafId "+r['IdUrssaf']+" could not be retrieve. Check API response.  Set it to FFacOS error")
+                )
+
+                _, _, _ ,_,success,_ = UpdateDemandePaiementInfoInDb(str(r['Id']),None,str(-999))
+
+
+            if success is False: 
+                CheckErrors.append(
+                    html.Div("Could not update StatutDemandePaiementUrssaf in Db for facture "+r['NumFacture']+". Check response. Set it to -999")
+                )
+
+
+
+
+    if len(CheckErrors)>0:
+        return ReturnWarningNotif(Message=CheckErrors,Duration=10000)
+    else:
+        return ReturnSuccessNotif(Duration=4000)
 
 
 

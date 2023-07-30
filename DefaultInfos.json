@@ -1,0 +1,19 @@
+{
+
+
+    "Connexion" :{
+
+        "Port" : 8088
+    },
+
+
+
+    "StatutDemandePaiementUrssaf_ToCheck" : [10,20,30,50,60,-999] ,
+
+    "SIREN" : "XXXXX",
+    "NumeroSAP" : "SAPXXXXXXXX",
+    "CodeNatureUrssaf" : "999",
+    "CodeActiviteUrssaf" : "999999"
+
+
+}

@@ -45,6 +45,7 @@ CREATE TABLE `cours` (
   `Date` datetime NOT NULL,
   `FactureId` bigint DEFAULT NULL,
   `HourPriceHT` decimal(10,2) NOT NULL DEFAULT '50.00',
+  `FraisDeplacement` decimal(10,2) NOT NULL DEFAULT '0',
   PRIMARY KEY (`Id`)
 ) ;
 
