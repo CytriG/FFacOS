@@ -6,3 +6,4 @@ app.spec
 dist
 build
 GenerateExe
+Db/Db.db
